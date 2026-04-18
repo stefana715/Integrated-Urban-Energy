@@ -190,3 +190,59 @@ Tracks key methodological decisions, their rationale, and any alternatives consi
 - Peak growth epoch distribution: Era 1-equivalent (≤2000) = 78.4%, Era 2 = 15.2%, Era 3 = 6.4% (provisional, before calibration)
 
 **Why BUILT-V over GHS-AGE alone:** GHS-AGE records when a cell *first* became built-up, not when it was last substantially rebuilt. In urban cores where redevelopment is common, BUILT-V volume jumps more reliably detect the *current* building generation. The recency_score thus captures post-2000 intensification that GHS-AGE missed.
+
+---
+
+## DEC-012 — Typology Refinement v3: Ternary Classification (LowRise/MidRise/HighRise)
+
+**Date:** 2026-04-19
+**Decision:** Replace the binary MidRise/HighRise typology (v2) with a ternary LowRise/MidRise/HighRise typology using Era-prior constraints and footprint sanity checks.
+
+**Problem with v2 binary typology:**
+- v2 gave 43.4% HighRise overall, including **60% HighRise for Era 1 (pre-2000)**
+- This contradicts Changsha building history: pre-2000 Changsha had almost no highrise residential
+- Root cause 1: GHSL ANBH is a 100m grid-cell average, not per-building. In mixed-density cells containing both old lowrise stock and newer towers, the cell average (~18m) causes the lowrise buildings to be misclassified
+- Root cause 2: The 18m binary threshold sits exactly on the mode of the ANBH distribution (mean = 17.9m), causing mass category flipping from a small height measurement error
+
+**Solution — four prioritised rules (first match wins):**
+
+| Rule | Condition | Typology | Rationale |
+|---|---|---|---|
+| 1. Era-1 prior | era_final = era1 AND h_eff < 30 m | LowRise | Pre-2000 Changsha had minimal highrise residential; override GHSL unless height is unambiguously highrise |
+| 2. Large-footprint slab | footprint > 2500 m² AND h_eff < 25 m | LowRise | Commercial/industrial slabs (school, mall, factory) are lowrise for PV purposes |
+| 3a. GHSL primary low | h_eff ≤ 18 m | LowRise | Standard 6-floor boundary |
+| 3b. GHSL primary mid | 18 < h_eff ≤ 36 m | MidRise | 7–12 floors |
+| 3c. GHSL primary high | h_eff > 36 m | HighRise | 13+ floors — unambiguous highrise |
+| 4. Null fallback | ghsl_height_m = 0 | use height_proxy_m | 31 buildings only |
+
+where h_eff = ghsl_height_m if > 0, else height_proxy_m.
+
+**Results (18,826 buildings):**
+- LowRise: 14,287 (75.9%) — Era-1 prior: 6,459; GHSL ≤18m: 7,184; large-slab: 644
+- MidRise: 3,901 (20.7%) — all GHSL 18–36m
+- HighRise: 638 (3.4%) — all GHSL >36m
+- Era 1 HighRise: 489 (6.5% of Era 1) — ⚠ above 2% review threshold; these are buildings with GHSL ≥30m in Era 1 cells (likely pre-2000 hotel/office towers or GHSL overestimates)
+
+**Flagged issue:** Era 1 HighRise remains at 6.5% (not ~0% as expected). These 489 buildings have GHSL ANBH ≥ 30m and escaped the Era-1 prior (which caps at 30m). See typology_validation_v3.md for the full list of top-20 buildings.
+
+---
+
+## DEC-013 — LowRise PV Generation Parameter Derivation
+
+**Date:** 2026-04-19
+**Decision:** Use 38.8 kWh/m²_floor/yr as the PV generation rate for LowRise buildings.
+
+**Derivation (preserving Paper 2's physical assumptions):**
+Paper 2 implies a roof-level PV productivity of ~239 kWh/m²_roof/yr:
+- MidRise cross-check: 27.4 kWh/m²_floor × (3,135 m²_floor / 360 m²_roof) ≈ 239 kWh/m²_roof
+- HighRise cross-check: 6.1 kWh/m²_floor × (7,836 m²_floor / 200 m²_roof) ≈ 239 kWh/m²_roof
+
+LowRise assumptions:
+- Representative LowRise archetype: 4-floor residential block, 500 m² footprint
+- Total floor area = 4 × 500 = 2,000 m²
+- Roof area = 500 m² (flat/nearly flat roof)
+- Usable roof fraction = 65% (shading, access, HVAC obstructions) → 325 m² usable
+- PV production = 325 m² × 239 kWh/m²_roof = 77,675 kWh/yr
+- Per m²_floor: 77,675 / 2,000 = **38.8 kWh/m²_floor/yr**
+
+This is physically consistent: LowRise has a higher roof-to-floor area ratio than MidRise or HighRise, so it generates more PV per floor m². The parameter preserves the same roof productivity (239 kWh/m²_roof) as Paper 2.

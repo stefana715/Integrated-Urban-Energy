@@ -89,7 +89,7 @@
 ## Task Checklist
 
 - [ ] **Task 1:** Data integration — merge Paper 1 building database with Paper 2 archetype results
-- [x] **Task 2:** Building stock classification — assign era and typology to 18,826 buildings ✓ v1 (2026-04-19), ✓ v2 calibrated (2026-04-19)
+- [x] **Task 2:** Building stock classification — assign era and typology to 18,826 buildings ✓ v1 (2026-04-19), ✓ v2 calibrated (2026-04-19), ✓ v3 ternary typology (2026-04-19)
 - [ ] **Task 3:** City-scale baseline energy estimation
 - [ ] **Task 4:** City-scale retrofit savings calculation
 - [ ] **Task 5:** PV generation mapping to building stock
@@ -132,10 +132,24 @@
 - Canonical unique buildings: 18,826 (29 OSM duplicate IDs removed from v1's 18,855)
 - Era method: recency_score quantile calibration using GHS-BUILT-V 1975–2020 time series (see DEC-009, DEC-011)
 - Height/typology method: GHSL ANBH (>18 m = HighRise); fallback to height_proxy_m for 31 buildings (see DEC-010)
-- ⚠ Note: GHSL ANBH gives 43.4% HighRise vs v1's 3.4% — large shift due to switching from OSM-default heights to satellite-derived heights. Review before Task 3.
-- High-potential buildings by era: Era 1 = 2,152; Era 2 = 2,000; Era 3 = 2,249
-- Rebuild detection: 4,522 likely rebuilt post-2000 (24.0%), 1,108 post-2010 (5.9%)
+- ⚠ Superseded by v3 typology below (binary gave 60% Era 1 HighRise — historically implausible)
 - Concordance v1→v2: 44.6% same era label
+
+### Era × Typology Classification **v3** (ternary: LowRise/MidRise/HighRise, canonical)
+| Era | Buildings | % | LowRise | MidRise | HighRise | Total floor area |
+|---|---|---|---|---|---|---|
+| Era 1 (pre-2000) | 7,530 | 40.0% | 6,459 | 582 | 489 | — |
+| Era 2 (2000–2009) | 5,271 | 28.0% | 3,292 | 1,879 | 100 | — |
+| Era 3 (2010–2020) | 6,025 | 32.0% | 4,536 | 1,440 | 49 | — |
+| **Total** | **18,826** | | **14,287 (75.9%)** | **3,901 (20.7%)** | **638 (3.4%)** | **—** |
+
+- Era calibration (40/28/32) unchanged from v2
+- Typology rules: Era-1 prior (<30m → LowRise); large-footprint slab (fp>2500m², h<25m → LowRise); GHSL thresholds (≤18m LowRise, ≤36m MidRise, >36m HighRise) — see DEC-012
+- PV rates: LowRise=38.8, MidRise=27.4, HighRise=6.1 kWh/m²_floor/yr — see DEC-013
+- Rebuild detection: 4,522 likely rebuilt post-2000 (24.0%), 1,108 post-2010 (5.9%)
+- High-potential buildings by era: Era 1 = 2,152; Era 2 = 2,000; Era 3 = 2,249
+- ⚠ Era 1 HighRise = 489 (6.5% of Era 1) — above 2% review threshold; see typology_validation_v3.md
+- ⚠ City-scale PV: v3 = 2,867 GWh/yr vs Paper 1 reference 1,764 GWh/yr (+63%) — difference driven by GHSL height inflation in floor area calculation; investigate before Task 5
 
 ### Baseline Energy Use Intensity (current climate)
 | Era | Description | EUI (kWh/m²/yr) |
@@ -152,10 +166,11 @@
 | Era 3 | 126.9 | 16% |
 
 ### PV Generation (per m² of floor area)
-| Typology | Generation | System size |
+| Typology | Generation | Basis |
 |---|---|---|
-| MidRise (≤6 floors) | 27.4 kWh/m²_floor/yr | 72 kWp |
-| HighRise (>6 floors) | 6.1 kWh/m²_floor/yr | 40 kWp |
+| LowRise (≤6 floors, ≤18m) | 38.8 kWh/m²_floor/yr | DEC-013 derivation (4F×500m², 65% roof util.) |
+| MidRise (7–12 floors, 18–36m) | 27.4 kWh/m²_floor/yr | Paper 2 original (72 kWp system) |
+| HighRise (>12 floors, >36m) | 6.1 kWh/m²_floor/yr | Paper 2 original (40 kWp system) |
 
 ### Climate Change
 | Scenario | Temperature change | Source |
