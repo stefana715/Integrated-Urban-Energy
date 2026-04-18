@@ -89,7 +89,7 @@
 ## Task Checklist
 
 - [ ] **Task 1:** Data integration — merge Paper 1 building database with Paper 2 archetype results
-- [x] **Task 2:** Building stock classification — assign era and typology to 18,855 buildings ✓ (2026-04-19)
+- [x] **Task 2:** Building stock classification — assign era and typology to 18,826 buildings ✓ v1 (2026-04-19), ✓ v2 calibrated (2026-04-19)
 - [ ] **Task 3:** City-scale baseline energy estimation
 - [ ] **Task 4:** City-scale retrofit savings calculation
 - [ ] **Task 5:** PV generation mapping to building stock
@@ -107,11 +107,11 @@
 ### Building Stock
 | Parameter | Value | Source |
 |---|---|---|
-| Total buildings, urban core | 18,855 | Paper 1, OSM |
-| High-potential buildings | 6,411 (34%) | Paper 1 |
+| Total buildings, urban core (canonical) | 18,826 | Paper 1, OSM (29 dup IDs removed) |
+| High-potential buildings | 6,401 (34%) | Paper 1 (recounted on 18,826 deduped) |
 | Priority grid cells (500 m) | 146 / 671 total | Paper 1 |
 
-### Era × Typology Classification (Task 2, GHS-AGE R2025A, 2026-04-19)
+### Era × Typology Classification v1 (GHS-AGE R2025A, superseded)
 | Era | Buildings | % | MidRise | HighRise | Total floor area |
 |---|---|---|---|---|---|
 | Era 1 (pre-2000) | 14,977 | 79.4% | 14,567 | 410 | 55.46 Mm² |
@@ -119,10 +119,23 @@
 | Era 3 (2010–2020) | 867 | 4.6% | 799 | 68 | 3.15 Mm² |
 | **Total** | **18,855** | | **18,213** | **642** | **72.59 Mm²** |
 
-- Era source: GHS-AGE = 18,823 buildings (99.8%); height fallback = 32 (0.2%)
-- High-potential buildings by era: Era 1 = 5,020; Era 2 = 1,153; Era 3 = 238
-- ⚠ Note: Pre-1980 epoch dominates at 54.3% — see DEC-008 in decision_log.md
-- ⚠ Note: Height cross-validation r = 0.002 — height_proxy_m is largely default-based; HighRise count (3.4%) likely understated — see DEC-007
+- ⚠ Superseded by v2 below. Pre-1980 epoch dominated at 54.3% (see DEC-008).
+
+### Era × Typology Classification **v2** (BUILT-V calibrated, 40/28/32, canonical)
+| Era | Buildings | % | MidRise | HighRise | Total floor area |
+|---|---|---|---|---|---|
+| Era 1 (pre-2000) | 7,530 | 40.0% | 3,008 | 4,522 | 49.39 Mm² |
+| Era 2 (2000–2009) | 5,271 | 28.0% | 3,200 | 2,071 | 34.95 Mm² |
+| Era 3 (2010–2020) | 6,025 | 32.0% | 4,452 | 1,573 | 37.16 Mm² |
+| **Total** | **18,826** | | **10,660** | **8,166** | **121.50 Mm²** |
+
+- Canonical unique buildings: 18,826 (29 OSM duplicate IDs removed from v1's 18,855)
+- Era method: recency_score quantile calibration using GHS-BUILT-V 1975–2020 time series (see DEC-009, DEC-011)
+- Height/typology method: GHSL ANBH (>18 m = HighRise); fallback to height_proxy_m for 31 buildings (see DEC-010)
+- ⚠ Note: GHSL ANBH gives 43.4% HighRise vs v1's 3.4% — large shift due to switching from OSM-default heights to satellite-derived heights. Review before Task 3.
+- High-potential buildings by era: Era 1 = 2,152; Era 2 = 2,000; Era 3 = 2,249
+- Rebuild detection: 4,522 likely rebuilt post-2000 (24.0%), 1,108 post-2010 (5.9%)
+- Concordance v1→v2: 44.6% same era label
 
 ### Baseline Energy Use Intensity (current climate)
 | Era | Description | EUI (kWh/m²/yr) |

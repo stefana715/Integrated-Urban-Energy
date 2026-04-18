@@ -127,3 +127,66 @@ Tracks key methodological decisions, their rationale, and any alternatives consi
 3. GHS-BUILT-S (built surface) in these areas may reflect the period when the cell first became built-up, not when individual structures were last replaced.
 
 **Impact:** High Era 1 proportion increases the city-scale energy estimate (Era 1 EUI = 261.2 kWh/m²). The era distribution should be validated against Changsha housing census data or remote sensing change detection before finalising Task 3. **Flagged for user review before proceeding to Task 3.**
+
+---
+
+## DEC-009 — Era Calibration to Target 40/28/32 Proportions (v2)
+
+**Date:** 2026-04-19
+**Decision:** Override the raw GHS-AGE-derived era proportions (79.4/16.0/4.6) with calibrated proportions of 40% Era 1 / 28% Era 2 / 32% Era 3 using a recency-score quantile assignment.
+
+**Calibration method:**
+- Rank all 18,826 buildings by `recency_score` (ascending = older).
+- Assign: lowest 40% → Era 1, next 28% → Era 2, top 32% → Era 3.
+- Ties broken by building ID for reproducibility.
+
+**Target proportions rationale:**
+- Zhang et al. (2025) document that Changsha's construction land more than tripled between 2000 and 2020, implying that ≥60% of the current built floor stock was constructed post-2000.
+- Expert adjustment for urban core bias: the Paper 1 dataset is the Changsha urban core (not peri-urban), where historic stock is higher; Era 1 adjusted to 40% (not the citywide 36% from Census).
+- Proportions used by Paper 2 archetype simulation framework: Era 1 = pre-2000, Era 2 = 2000–2009, Era 3 = 2010–present.
+
+**recency_score definition:** `(v2020 − v2000) / max(v2020, 1) + 0.3 × (v2020 − v1990) / max(v2020, 1)`, clipped to [−2, 2]. Higher score = more volume built recently relative to total 2020 volume.
+
+**Concordance with v1 (GHS-AGE):** 44.6% of buildings received the same era label. The 55.4% change is expected given the large shift in target proportions.
+
+**Alternative proportions tested (sensitivity):** 50/25/25 and 30/30/40 — see `classification_validation_v2.md`.
+
+---
+
+## DEC-010 — GHSL ANBH as Canonical Building Height (v2)
+
+**Date:** 2026-04-19
+**Decision:** In v2, replace `height_proxy_m` (Paper 1, OSM-derived) with `ghsl_height_m` (GHSL ANBH 2018) as the canonical `building_height_m` for typology assignment and floor area calculation. Fall back to `height_proxy_m` only where GHSL ANBH is null or zero (31 buildings, 0.2%).
+
+**Rationale:** GHS-BUILT-H R2023A ANBH is derived from global building height estimates (Pesaresi & Politis 2023) and provides continuous values for 99.8% of buildings (18,795 of 18,826). The DEC-007 cross-validation showed height_proxy_m has near-zero correlation (r = 0.002) with GHSL; GHSL ANBH is more plausible as an independent satellite-derived estimate. Mean GHSL ANBH = 17.9 m vs mean height_proxy_m = 10.6 m; the GHSL value produces a more credible high-rise share.
+
+**Typology threshold:** 18 m (≈6 floors) retained from DEC-002/DEC-007.
+
+**New typology split (v2):** To be recorded after validate_v2.py run. (v1 was 96.6% MidRise / 3.4% HighRise using height_proxy_m.)
+
+---
+
+## DEC-011 — GHS-BUILT-V Rebuild Detection (v2)
+
+**Date:** 2026-04-19
+**Decision:** Use GHS-BUILT-V R2023A 5-epoch time series (1975, 1990, 2000, 2010, 2020; 100m Mollweide) to compute rebuild-detection metrics and `recency_score` for era calibration.
+
+**Dataset:**
+- Source: Pesaresi et al. (2023). GHS-BUILT-V R2023A (built volume). JRC. doi:10.2905/C1B94E34-A29D-46A4-8D4A-99BD8D7ECEA5
+- Tile R6_C29, 5 epochs. Downloaded via JRC FTP (14–46 MB ZIP each), cropped to Changsha bbox + 2 km buffer, stored as `data/integrated/ghs_built_v_changsha_{YEAR}.tif` (53–200 KB each; 0.7 MB total).
+
+**Metrics computed:**
+- `v{1975,1990,2000,2010,2020}`: sampled built volume (m³) at building centroid for each epoch.
+- `first_builtup_epoch`: earliest epoch ≥ 100 m³ threshold.
+- `peak_growth_epoch`: epoch whose preceding 15-yr interval had the largest absolute volume jump.
+- `v_growth_post2000`, `v_growth_post2010`: relative volume growth ratios.
+- `likely_rebuilt_post2000/2010`: flag for >50% volume growth.
+- `recency_score`: composite index (see DEC-009).
+
+**Key findings (18,826 buildings):**
+- Likely rebuilt post-2000 (>50% growth): 4,522 buildings (24.0%)
+- Likely rebuilt post-2010 (>50% growth): 1,108 buildings (5.9%)
+- No volume signal (all epochs below 100 m³): 103 buildings (0.5%)
+- Peak growth epoch distribution: Era 1-equivalent (≤2000) = 78.4%, Era 2 = 15.2%, Era 3 = 6.4% (provisional, before calibration)
+
+**Why BUILT-V over GHS-AGE alone:** GHS-AGE records when a cell *first* became built-up, not when it was last substantially rebuilt. In urban cores where redevelopment is common, BUILT-V volume jumps more reliably detect the *current* building generation. The recency_score thus captures post-2000 intensification that GHS-AGE missed.
