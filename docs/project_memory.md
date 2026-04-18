@@ -90,7 +90,7 @@
 
 - [ ] **Task 1:** Data integration — merge Paper 1 building database with Paper 2 archetype results
 - [x] **Task 2:** Building stock classification — assign era and typology to 18,826 buildings ✓ v1–v5 (2026-04-19). **v5 is canonical final (73.9/21.4/4.7% LowRise/MidRise/HighRise, 72 Mm², PV 0.91× Paper 1). Task 3 GREENLIT.**
-- [ ] **Task 3:** City-scale baseline energy estimation
+- [x] **Task 3:** City-scale baseline energy estimation ✓ (2026-04-19) — 15,382 GWh/yr total; Era 1 = 45.1%; H/C ratio = 1.79; city EUI = 213.5 kWh/m²/yr. See baseline_city_totals.csv, validation_task3.md.
 - [ ] **Task 4:** City-scale retrofit savings calculation
 - [ ] **Task 5:** PV generation mapping to building stock
 - [ ] **Task 6:** Monthly supply-demand matching analysis

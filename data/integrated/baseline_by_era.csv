@@ -1,0 +1,4 @@
+era,label,building_count,floor_area_Mm2,eui_kwh_m2,total_energy_GWh,heating_GWh,cooling_GWh,other_GWh,energy_share_percent,fa_share_percent
+era1,Era 1 (pre-2000),7530,26.53,261.21,6930.86,2643.02,1179.69,3107.89,45.10,36.80
+era2,Era 2 (2000–09),7190,26.29,211.43,5559.33,1602.88,950.79,3005.40,36.10,36.50
+era3,Era 3 (2010–20),4106,19.22,150.41,2891.38,289.50,401.77,2200.11,18.80,26.70

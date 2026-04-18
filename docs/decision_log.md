@@ -348,3 +348,29 @@ This is physically consistent: LowRise has a higher roof-to-floor area ratio tha
 **Comparison to v4:** v4 downgraded 2,929 buildings (47% more) because v4's 98.8% LowRise typology inflated the eligible pool. v5's 1,919 downgrades are more targeted (buildings in genuinely low-height cells with weak post-2010 growth signal).
 
 **Note:** Era 3 at 21.8% is higher than v4's 16.4% but still below the 32.0% calibration target. Physical consistency (GHSL growth signal) continues to take precedence over exact target matching. Era 1 is exactly at target (40.0%) because the downgrade only affects Era 3 buildings.
+
+---
+
+## DEC-018 — Task 3 Baseline Energy: EUI Scaling and Validation
+
+**Date:** 2026-04-19
+**Decision:** Apply Paper 2 archetype EUI values (heating + cooling + other) to v5 floor areas via simple multiplication: `annual_energy_kwh = total_floor_area_m2 × EUI`.
+
+**EUI values used (from data/from_paper2/processed/baseline_results.csv):**
+| Era | Total EUI | Heating | Cooling | Other |
+|---|---|---|---|---|
+| Era 1 | 261.21 | 99.61 | 44.46 | 117.13 |
+| Era 2 | 211.43 | 60.96 | 36.16 | 114.30 |
+| Era 3 | 150.41 | 15.06 | 20.90 | 114.45 |
+
+**City-scale results:**
+- Total baseline energy: 15,382 GWh/yr
+- City mean EUI: 213.5 kWh/m²/yr
+- Heating / Cooling / Other: 4,535 / 2,532 / 8,313 GWh
+- H/C ratio: 1.79 (within expected 1.3–1.8 HSCW range ✓)
+- Era 1 energy share: 45.1% (expected dominant ✓)
+
+**Known limitation (D1/D2 sanity flags):** The total energy estimate (~15,382 GWh) is higher than a naive comparison to Changsha's citywide residential electricity would suggest. This reflects three issues: (1) Paper 2 EUI values are EnergyPlus design-condition outputs, known to overestimate real-world consumption by 1.5–3× in Chinese stock literature; (2) the building stock includes commercial and institutional buildings, not just residential; (3) the "other" end-use category (117 kWh/m²/yr for Era 1) includes plug loads and DHW calibrated to design conditions. For Paper 3, EUI values are used for RELATIVE comparisons (era-to-era ratios, retrofit savings shares) rather than absolute city totals — framing results as 'simulated baseline' mitigates this limitation.
+
+**Scripts:** `code/analysis/baseline_city.py`
+**Outputs:** `data/integrated/archetype_eui.csv`, `baseline_city_building.csv`, `baseline_city_totals.csv`, `baseline_by_era.csv`, `baseline_by_grid.csv`, `validation_task3.md`, `figure/fig04_city_baseline.png`
