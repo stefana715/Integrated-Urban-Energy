@@ -292,3 +292,59 @@ This is physically consistent: LowRise has a higher roof-to-floor area ratio tha
 **Note:** This deliberately breaks the 40/28/32 calibration target (DEC-009). Physical consistency of Era × Typology takes precedence over matching the target distribution when evidence (BUILT-V growth signal) contradicts the calibrated label. The shift is larger than anticipated because the v4 typology (98.8% LowRise) means nearly all Era 3 buildings are LowRise and subject to the downgrade rule.
 
 **Sensitivity:** Using threshold 0.2 instead of 0.3 gives fewer downgrades — see validation_v4.md E8.
+
+---
+
+## DEC-016 — v5 Selective Height Rule for Typology (CANONICAL)
+
+**Date:** 2026-04-19
+**Decision:** Split canonical height into two fields to resolve v4's LowRise degeneracy (98.8%) without inflating floor areas or PV.
+
+**Three-tier canonical height rule:**
+
+| Tier | Condition | canonical_height_m (floor area) | typology_height_m (typology) | height_source |
+|---|---|---|---|---|
+| 1 | proxy NOT in [9.0, 10.5] | height_proxy_m | height_proxy_m | osm_real |
+| 2a | proxy IS default, GHSL ≤ 18 m | GHSL | GHSL | ghsl_direct |
+| 2b | proxy IS default, GHSL > 18 m | GHSL × 1.3 | GHSL | ghsl_bias_corrected |
+| 2c | proxy IS default, GHSL null | proxy_m | proxy_m | default_fallback |
+
+**Key design split (from diagnostic Stage E):**
+- `typology_height_m` = GHSL direct (no bias correction) for LowRise/MidRise/HighRise thresholds
+- `canonical_height_m` = GHSL × 1.3 bias-corrected for reference/sensitivity (stored, not used for floor count)
+- `floor_count_est` = `height_proxy_m / 3` — uses Paper 1's original floor-count methodology, keeping floor area consistent with Paper 1 (72 Mm²)
+
+**Why NOT use canonical_height_m for floor count:** Applying ×1.3 bias correction for floor count inflates floor area to ~141 Mm² (2× Paper 1) and PV to ~4.3 TWh (2.5× Paper 1). Using height_proxy_m for floor count gives floor area = 72 Mm² (Paper 1-consistent) and high-potential PV = 1.603 TWh (0.91× Paper 1, within ±10%).
+
+**Height source breakdown (18,826 buildings):**
+- ghsl_direct: 9,746 (51.8%)
+- ghsl_bias_corrected: 7,884 (41.9%)
+- osm_real: 1,167 (6.2%)
+- default_fallback: 29 (0.2%)
+
+**OSM default values identified:** [9.0, 10.5] — cover 93.8% of buildings; stored in `data/integrated/osm_default_proxy_values.json`
+
+---
+
+## DEC-017 — v5 Era Distribution and Downgrade (CANONICAL)
+
+**Date:** 2026-04-19
+**Decision:** Era calibration uses same 40/28/32 quantile starting point as v2–v4. Era 3 downgrade condition uses `typology_height_m ≤ 18` (GHSL direct ≤ 18m) AND `v_growth_post2010 < 0.3` — replaces v4's `typology == lowrise` condition.
+
+**Rationale for using typology_height_m instead of typology label:** In v4, nearly all buildings were LowRise (98.8%), inflating the downgrade count to 2,929. In v5, using the continuous GHSL-direct height (≤ 18m threshold) as the physical criterion for the downgrade is more precise and independent of typology classification.
+
+**Results:**
+
+| Era | Post-downgrade | % |
+|---|---|---|
+| Era 1 | 7,530 | 40.0% |
+| Era 2 | 7,190 | 38.2% |
+| Era 3 | 4,106 | 21.8% |
+
+- Downgraded (Era 3 → Era 2): 1,919 buildings
+- Era 3 reduction: 6,025 → 4,106 (32.0% → 21.8%)
+- Era 2 increase: 5,271 → 7,190 (28.0% → 38.2%)
+
+**Comparison to v4:** v4 downgraded 2,929 buildings (47% more) because v4's 98.8% LowRise typology inflated the eligible pool. v5's 1,919 downgrades are more targeted (buildings in genuinely low-height cells with weak post-2010 growth signal).
+
+**Note:** Era 3 at 21.8% is higher than v4's 16.4% but still below the 32.0% calibration target. Physical consistency (GHSL growth signal) continues to take precedence over exact target matching. Era 1 is exactly at target (40.0%) because the downgrade only affects Era 3 buildings.
