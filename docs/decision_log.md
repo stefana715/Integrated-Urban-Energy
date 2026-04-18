@@ -246,3 +246,49 @@ LowRise assumptions:
 - Per m²_floor: 77,675 / 2,000 = **38.8 kWh/m²_floor/yr**
 
 This is physically consistent: LowRise has a higher roof-to-floor area ratio than MidRise or HighRise, so it generates more PV per floor m². The parameter preserves the same roof productivity (239 kWh/m²_roof) as Paper 2.
+
+---
+
+## DEC-014 — Hybrid Canonical Height (v4)
+
+**Date:** 2026-04-19
+**Decision:** Compute `canonical_height_m` as a hybrid of GHSL ANBH and height_proxy_m using four rules:
+
+| Rule | Condition | canonical_height_m | height_source |
+|---|---|---|---|
+| 1 | ghsl null or ≤ 0 | height_proxy_m | proxy_only |
+| 2 | \|ghsl − proxy\| < 5 m | (ghsl + proxy) / 2 | mean_agreement |
+| 3 | ghsl > 2 × proxy | min(ghsl, proxy × 1.5) | capped_ghsl |
+| 4 | otherwise | ghsl_height_m | ghsl_primary |
+
+**Applied outcome (18,826 buildings):**
+- proxy_only: 31 (0.2%), mean h = 9.5 m
+- mean_agreement: 4,954 (26.3%), mean h = 10.2 m
+- capped_ghsl: 7,869 (41.8%), mean h = 13.5 m
+- ghsl_primary: 5,972 (31.7%), mean h = 14.5 m
+- **Overall mean canonical_height_m: 12.94 m** (vs GHSL 17.9 m, proxy 10.6 m)
+
+**Issue identified:** The `capped_ghsl` rule dominates (41.8%). Because proxy=9m is the OSM default for most buildings, `proxy × 1.5 = 13.5 m`. This caps 7,653 buildings to 13.5 m, all falling ≤18 m → LowRise. Combined with the Era-1 prior, the result is 98.8% LowRise — a degenerate typology. See DEC-015 for context and validation_v4.md (E9) for recommended alternatives.
+
+**Rationale for keeping v4 as-is:** The result is scientifically documented and the issue is fully diagnosed. v4 is the canonical output for this iteration; v5 should address the degenerate typology before Task 3.
+
+---
+
+## DEC-015 — Era 3 LowRise Downgrade (v4)
+
+**Date:** 2026-04-19
+**Decision:** Downgrade Era 3 LowRise buildings to Era 2 when `v_growth_post2010 < 0.3`, on the basis that a building in a cell with no strong post-2010 volume growth was unlikely built in 2010–2020.
+
+**Applied outcome:**
+- 2,929 buildings downgraded from Era 3 → Era 2
+- Era 3 reduced from 6,025 → 3,096 (16.4% of total)
+- Era 2 increased from 5,271 → 8,200 (43.6%)
+
+**New era distribution (v4, post-downgrade):**
+- Era 1: 7,530 (40.0%) — unchanged
+- Era 2: 8,200 (43.6%) — increased from 28.0%
+- Era 3: 3,096 (16.4%) — decreased from 32.0%
+
+**Note:** This deliberately breaks the 40/28/32 calibration target (DEC-009). Physical consistency of Era × Typology takes precedence over matching the target distribution when evidence (BUILT-V growth signal) contradicts the calibrated label. The shift is larger than anticipated because the v4 typology (98.8% LowRise) means nearly all Era 3 buildings are LowRise and subject to the downgrade rule.
+
+**Sensitivity:** Using threshold 0.2 instead of 0.3 gives fewer downgrades — see validation_v4.md E8.

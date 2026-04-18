@@ -89,7 +89,7 @@
 ## Task Checklist
 
 - [ ] **Task 1:** Data integration — merge Paper 1 building database with Paper 2 archetype results
-- [x] **Task 2:** Building stock classification — assign era and typology to 18,826 buildings ✓ v1 (2026-04-19), ✓ v2 calibrated (2026-04-19), ✓ v3 ternary typology (2026-04-19)
+- [x] **Task 2:** Building stock classification — assign era and typology to 18,826 buildings ✓ v1–v4 (2026-04-19). **v4 is canonical but has known issues — see below before Task 3.**
 - [ ] **Task 3:** City-scale baseline energy estimation
 - [ ] **Task 4:** City-scale retrofit savings calculation
 - [ ] **Task 5:** PV generation mapping to building stock
@@ -148,8 +148,24 @@
 - PV rates: LowRise=38.8, MidRise=27.4, HighRise=6.1 kWh/m²_floor/yr — see DEC-013
 - Rebuild detection: 4,522 likely rebuilt post-2000 (24.0%), 1,108 post-2010 (5.9%)
 - High-potential buildings by era: Era 1 = 2,152; Era 2 = 2,000; Era 3 = 2,249
-- ⚠ Era 1 HighRise = 489 (6.5% of Era 1) — above 2% review threshold; see typology_validation_v3.md
-- ⚠ City-scale PV: v3 = 2,867 GWh/yr vs Paper 1 reference 1,764 GWh/yr (+63%) — difference driven by GHSL height inflation in floor area calculation; investigate before Task 5
+- ⚠ Superseded by v4 below.
+
+### Era × Typology Classification **v4** (hybrid height + Era 3 downgrade, CANONICAL)
+| Era | Buildings | % | LowRise | MidRise | HighRise | Floor area |
+|---|---|---|---|---|---|---|
+| Era 1 (pre-2000) | 7,530 | 40.0% | 7,490 (99.5%) | 22 | 18 | 34.39 Mm² |
+| Era 2 (2000–2009) | 8,200 | 43.6% | 8,130 (99.1%) | 64 | 6 | 42.07 Mm² |
+| Era 3 (2010–2020) | 3,096 | 16.4% | 2,987 (96.5%) | 109 | 0 | 15.95 Mm² |
+| **Total** | **18,826** | | **18,607 (98.8%)** | **195** | **24** | **92.42 Mm²** |
+
+- **Era calibration:** 40/28/32 broken by downgrade; new distribution 40/43.6/16.4 (see DEC-015)
+- **Height source:** mean_agreement 26.3%, capped_ghsl 41.8%, ghsl_primary 31.7%, proxy_only 0.2% (see DEC-014)
+- **Mean canonical height:** 12.94 m (vs GHSL 17.9 m, proxy 10.6 m)
+- **City-scale PV (v4):** 2,488 GWh/yr (+41% vs Paper 1's 1,764) — still outside ±25% target
+- **EUI baseline preview:** 20,276 GWh/yr total energy (note: EUI is total energy including gas, not electricity-only)
+- **⚠ KNOWN ISSUE: 98.8% LowRise** — capped_ghsl rule caps proxy=9m buildings to 13.5m canonical, all ≤18m → LowRise. Typology is effectively degenerate. Must resolve before Task 3.
+- **⚠ Era 3 shrinkage:** 2,929 buildings downgraded Era3→Era2; Era 3 is now only 16.4%
+- **Recommended fix (v5):** cap_ratio=3.0 OR use GHSL for typology but proxy for floor area (see validation_v4.md E9)
 
 ### Baseline Energy Use Intensity (current climate)
 | Era | Description | EUI (kWh/m²/yr) |
