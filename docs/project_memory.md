@@ -89,7 +89,7 @@
 ## Task Checklist
 
 - [ ] **Task 1:** Data integration — merge Paper 1 building database with Paper 2 archetype results
-- [ ] **Task 2:** Building stock classification — assign era and typology to 18,855 buildings
+- [x] **Task 2:** Building stock classification — assign era and typology to 18,855 buildings ✓ (2026-04-19)
 - [ ] **Task 3:** City-scale baseline energy estimation
 - [ ] **Task 4:** City-scale retrofit savings calculation
 - [ ] **Task 5:** PV generation mapping to building stock
@@ -110,6 +110,19 @@
 | Total buildings, urban core | 18,855 | Paper 1, OSM |
 | High-potential buildings | 6,411 (34%) | Paper 1 |
 | Priority grid cells (500 m) | 146 / 671 total | Paper 1 |
+
+### Era × Typology Classification (Task 2, GHS-AGE R2025A, 2026-04-19)
+| Era | Buildings | % | MidRise | HighRise | Total floor area |
+|---|---|---|---|---|---|
+| Era 1 (pre-2000) | 14,977 | 79.4% | 14,567 | 410 | 55.46 Mm² |
+| Era 2 (2000–2009) | 3,011 | 16.0% | 2,847 | 164 | 13.98 Mm² |
+| Era 3 (2010–2020) | 867 | 4.6% | 799 | 68 | 3.15 Mm² |
+| **Total** | **18,855** | | **18,213** | **642** | **72.59 Mm²** |
+
+- Era source: GHS-AGE = 18,823 buildings (99.8%); height fallback = 32 (0.2%)
+- High-potential buildings by era: Era 1 = 5,020; Era 2 = 1,153; Era 3 = 238
+- ⚠ Note: Pre-1980 epoch dominates at 54.3% — see DEC-008 in decision_log.md
+- ⚠ Note: Height cross-validation r = 0.002 — height_proxy_m is largely default-based; HighRise count (3.4%) likely understated — see DEC-007
 
 ### Baseline Energy Use Intensity (current climate)
 | Era | Description | EUI (kWh/m²/yr) |
