@@ -1,0 +1,4 @@
+archetype,era,label,description,floor_area_m2,heating_kwh_m2,cooling_kwh_m2,lighting_kwh_m2,equipment_kwh_m2,fans_kwh_m2,other_kwh_m2,total_eui_kwh_m2,peak_heating_w_m2,peak_cooling_w_m2
+Era1_1980s_MidRise,1,Era 1 (~1980s),"MidRise, pre-code",3134.60,99.61,44.46,14.12,40.64,17.26,117.13,261.21,0.00,0.00
+Era2_2000s_MidRise,2,Era 2 (~2000s),"MidRise, partial insulation",3134.60,60.96,36.16,14.12,40.64,14.45,114.30,211.43,0.00,0.00
+Era3_2010s_HighRise,3,Era 3 (~2010s+),"HighRise, JGJ 134-2010",7836.40,15.06,20.90,5.64,39.47,10.77,114.45,150.41,0.00,0.00

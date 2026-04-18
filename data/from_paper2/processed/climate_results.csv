@@ -1,0 +1,31 @@
+archetype,era,era_label,retrofit,retrofit_label,climate,climate_label,year,ssp,heating_kwh_m2,cooling_kwh_m2,total_eui_kwh_m2,floor_area_m2
+Era1_1980s_MidRise,1,Era 1 (~1980s),Baseline,Baseline,Current,Current (TMYx),2013,—,99.61,44.46,261.21,3134.6
+Era1_1980s_MidRise,1,Era 1 (~1980s),Baseline,Baseline,2050_SSP245,2050 SSP2-4.5,2050,SSP2-4.5,77.34,56.22,251.84,3134.6
+Era1_1980s_MidRise,1,Era 1 (~1980s),Baseline,Baseline,2050_SSP585,2050 SSP5-8.5,2050,SSP5-8.5,72.18,59.34,250.12,3134.6
+Era1_1980s_MidRise,1,Era 1 (~1980s),Baseline,Baseline,2080_SSP245,2080 SSP2-4.5,2080,SSP2-4.5,70.06,60.52,249.31,3134.6
+Era1_1980s_MidRise,1,Era 1 (~1980s),Baseline,Baseline,2080_SSP585,2080 SSP5-8.5,2080,SSP5-8.5,51.61,74.29,246.19,3134.6
+Era1_1980s_MidRise,1,Era 1 (~1980s),R5_Combined,R5 Combined,Current,Current (TMYx),2013,—,2.97,25.17,138.34,3134.6
+Era1_1980s_MidRise,1,Era 1 (~1980s),R5_Combined,R5 Combined,2050_SSP245,2050 SSP2-4.5,2050,SSP2-4.5,1.62,29.26,141.85,3134.6
+Era1_1980s_MidRise,1,Era 1 (~1980s),R5_Combined,R5 Combined,2050_SSP585,2050 SSP5-8.5,2050,SSP5-8.5,1.34,30.34,142.84,3134.6
+Era1_1980s_MidRise,1,Era 1 (~1980s),R5_Combined,R5 Combined,2080_SSP245,2080 SSP2-4.5,2080,SSP2-4.5,1.24,30.75,143.24,3134.6
+Era1_1980s_MidRise,1,Era 1 (~1980s),R5_Combined,R5 Combined,2080_SSP585,2080 SSP5-8.5,2080,SSP5-8.5,0.52,35.39,148.03,3134.6
+Era2_2000s_MidRise,2,Era 2 (~2000s),Baseline,Baseline,Current,Current (TMYx),2013,—,60.96,36.16,211.43,3134.6
+Era2_2000s_MidRise,2,Era 2 (~2000s),Baseline,Baseline,2050_SSP245,2050 SSP2-4.5,2050,SSP2-4.5,46.13,45.16,206.65,3134.6
+Era2_2000s_MidRise,2,Era 2 (~2000s),Baseline,Baseline,2050_SSP585,2050 SSP5-8.5,2050,SSP5-8.5,42.71,47.55,205.92,3134.6
+Era2_2000s_MidRise,2,Era 2 (~2000s),Baseline,Baseline,2080_SSP245,2080 SSP2-4.5,2080,SSP2-4.5,41.33,48.47,205.58,3134.6
+Era2_2000s_MidRise,2,Era 2 (~2000s),Baseline,Baseline,2080_SSP585,2080 SSP5-8.5,2080,SSP5-8.5,29.35,59.05,205.57,3134.6
+Era2_2000s_MidRise,2,Era 2 (~2000s),R5_Combined,R5 Combined,Current,Current (TMYx),2013,—,2.97,25.17,138.34,3134.6
+Era2_2000s_MidRise,2,Era 2 (~2000s),R5_Combined,R5 Combined,2050_SSP245,2050 SSP2-4.5,2050,SSP2-4.5,1.62,29.26,141.85,3134.6
+Era2_2000s_MidRise,2,Era 2 (~2000s),R5_Combined,R5 Combined,2050_SSP585,2050 SSP5-8.5,2050,SSP5-8.5,1.34,30.34,142.84,3134.6
+Era2_2000s_MidRise,2,Era 2 (~2000s),R5_Combined,R5 Combined,2080_SSP245,2080 SSP2-4.5,2080,SSP2-4.5,1.24,30.75,143.24,3134.6
+Era2_2000s_MidRise,2,Era 2 (~2000s),R5_Combined,R5 Combined,2080_SSP585,2080 SSP5-8.5,2080,SSP5-8.5,0.52,35.39,148.03,3134.6
+Era3_2010s_HighRise,3,Era 3 (~2010s+),Baseline,Baseline,Current,Current (TMYx),2013,—,15.06,20.9,150.41,7836.4
+Era3_2010s_HighRise,3,Era 3 (~2010s+),Baseline,Baseline,2050_SSP245,2050 SSP2-4.5,2050,SSP2-4.5,10.61,25.2,149.97,7836.5
+Era3_2010s_HighRise,3,Era 3 (~2010s+),Baseline,Baseline,2050_SSP585,2050 SSP5-8.5,2050,SSP5-8.5,9.57,26.35,150.09,7836.4
+Era3_2010s_HighRise,3,Era 3 (~2010s+),Baseline,Baseline,2080_SSP245,2080 SSP2-4.5,2080,SSP2-4.5,9.16,26.82,150.16,7836.4
+Era3_2010s_HighRise,3,Era 3 (~2010s+),Baseline,Baseline,2080_SSP585,2080 SSP5-8.5,2080,SSP5-8.5,5.77,31.79,152.21,7836.5
+Era3_2010s_HighRise,3,Era 3 (~2010s+),R5_Combined,R5 Combined,Current,Current (TMYx),2013,—,0.19,18.96,126.91,7836.5
+Era3_2010s_HighRise,3,Era 3 (~2010s+),R5_Combined,R5 Combined,2050_SSP245,2050 SSP2-4.5,2050,SSP2-4.5,0.06,21.43,130.06,7836.5
+Era3_2010s_HighRise,3,Era 3 (~2010s+),R5_Combined,R5 Combined,2050_SSP585,2050 SSP5-8.5,2050,SSP5-8.5,0.04,22.07,130.91,7836.4
+Era3_2010s_HighRise,3,Era 3 (~2010s+),R5_Combined,R5 Combined,2080_SSP245,2080 SSP2-4.5,2080,SSP2-4.5,0.03,22.35,131.28,7836.5
+Era3_2010s_HighRise,3,Era 3 (~2010s+),R5_Combined,R5 Combined,2080_SSP585,2080 SSP5-8.5,2080,SSP5-8.5,0.0,25.01,134.94,7836.5

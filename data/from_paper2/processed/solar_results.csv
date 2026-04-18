@@ -1,0 +1,7 @@
+archetype,era,era_label,arch_type,floor_area_m2,retrofit,retrofit_eui_kwh_m2,pv_usable_area_m2,pv_capacity_kwp,pv_annual_kwh,pv_per_m2_floor,net_eui_kwh_m2,pv_to_demand_ratio,self_consumption_pct,self_sufficiency_pct,direct_use_kwh
+Era1_1980s_MidRise,1,Era 1 (~1980s),MidRise,3134.6,Baseline,261.21,360.0,72.0,85841.0,27.39,233.82,0.1048,100.0,10.5,85812.1
+Era1_1980s_MidRise,1,Era 1 (~1980s),MidRise,3134.6,R5_Combined,138.34,360.0,72.0,85841.0,27.39,110.95,0.198,90.5,17.9,77653.3
+Era2_2000s_MidRise,2,Era 2 (~2000s),MidRise,3134.6,Baseline,211.43,360.0,72.0,85841.0,27.39,184.04,0.1295,99.2,12.8,85158.9
+Era2_2000s_MidRise,2,Era 2 (~2000s),MidRise,3134.6,R5_Combined,138.34,360.0,72.0,85841.0,27.39,110.95,0.198,90.5,17.9,77653.3
+Era3_2010s_HighRise,3,Era 3 (~2010s+),HighRise,7836.4,Baseline,150.41,200.0,40.0,47689.0,6.09,144.32,0.0405,100.0,4.0,47689.5
+Era3_2010s_HighRise,3,Era 3 (~2010s+),HighRise,7836.4,R5_Combined,126.91,200.0,40.0,47689.0,6.09,120.82,0.048,100.0,4.8,47689.5
