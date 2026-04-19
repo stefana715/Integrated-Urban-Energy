@@ -12,20 +12,20 @@ python code/postprocessing/generate_all_figures.py
 
 | File | Size | Caption |
 |------|------|---------|
-| fig01_study_area.png | 546 kB | Study area map showing the Changsha urban core (18,826 OSM buildings) coloured by construction era, with inset bar chart of era distribution. |
-| fig02_methodology_flowchart.png | 218 kB | Schematic methodology flowchart integrating Paper 1 (solar screening) and Paper 2 (EnergyPlus archetypes) through Tasks 1–8 to produce city-scale results. |
+| fig01_study_area.png | 1107 kB | Single-panel study area map of Changsha urban residential core (18,826 buildings coloured by construction era). Mainland China context inset (top-right) with Changsha location marked. Includes scale bar (3 km) and north arrow. |
+| fig02_methodology_flowchart.png | 269 kB | Three-section methodology flowchart: ① Input data (Paper 1 solar screening + Paper 2 EnergyPlus archetypes), ② Analysis (Tasks 1–8), ③ Output (Paper 3 city-scale assessment). |
 | fig03_era_typology.png | 159 kB | Building stock classification: (a) era distribution, (b) typology distribution, (c) era × typology stacked breakdown for all 18,826 buildings. |
 | fig04_city_baseline.png | 123 kB | City-scale baseline energy by era: (a) stacked bar (heating / cooling / other) per era, (b) energy use intensity (EUI, kWh/m²/yr) per era. City total: 15,382 GWh/yr (EUI = 213.5 kWh/m²/yr). |
 | fig05_city_retrofit.png | 136 kB | Retrofit savings: (a) city-total annual savings by retrofit measure (R1–R5), (b) R5 savings by era. R4 air sealing is the single most effective measure (27.8% savings). |
-| fig06_pv_spatial.png | 276 kB | Grid-level rooftop PV generation choropleth: (a) all buildings, (b) high-potential buildings only. HP total = 1,603 GWh/yr from 6,401 buildings. |
+| fig06_pv_spatial.png | 364 kB | Rooftop PV potential: (a) HP-buildings-only grid choropleth (YlOrRd, annual GWh/yr), (b) PV generation by typology bar chart with HP building fraction overlaid as secondary axis. HP total = 1,603 GWh/yr: LowRise 79%, MidRise 16%, HighRise 5%. |
 | fig07_supply_demand.png | 138 kB | Monthly PV supply vs building energy demand for (a) baseline and (b) R5 retrofit scenarios. PV (1,603 GWh) << total demand in all months → 100% self-consumption guaranteed. |
-| fig08_seasonal_match.png | 136 kB | Seasonal PV–demand matching: (a) monthly PV coverage fraction, (b) PV–cooling coincidence. Coincidence factor = 0.425 (Jun–Sep PV share 38.3% of annual total). |
+| fig08_seasonal_match.png | 174 kB | Seasonal PV–demand matching: (a) monthly PV coverage of total demand (%), (b) PV coverage of cooling demand for active cooling season only (Apr–Oct); winter months hatched as undefined. Coincidence factor = 0.425. |
 | fig09_climate_city.png | 143 kB | Climate scenario impacts on city energy demand: (a) baseline demand by scenario, (b) baseline vs R5 demand across all 5 scenarios. Baseline demand decreases under warming (−4.4% by 2080 SSP5-8.5) due to heating-heavy stock (H/C = 1.79). |
 | fig10_hc_shift.png | 142 kB | Heating-to-cooling ratio shift under climate change: (a) H/C ratio (tipping at 2050 SSP5-8.5 for baseline), (b) absolute heating vs cooling by scenario for baseline and R5. |
-| fig11_integrated_grid.png | 353 kB | Integrated grid priority ranking: (a) composite score choropleth (top-50 highlighted), (b) top-50 grids coloured by dominant era. 28/50 overlap with Paper 1 priority; 22 new grids surfaced by multi-dimensional scoring. |
+| fig11_integrated_grid.png | 471 kB | Integrated grid priority ranking — 3 panels: (a) score choropleth with top-50 marked by red outlines, (b) top-50 grids coloured by dominant era, (c) bar chart of Paper 1 vs Paper 3 priority grid overlap (118 P1-only / 28 both / 22 new). |
 | fig12_carbon.png | 161 kB | Annual carbon accounting: (a) current-year emissions by intervention stage (baseline / +PV / R5 / R5+PV), (b) per-era combined CO₂ savings breakdown. Total avoided = 4,127 kt CO₂/yr. |
 | fig13_cumulative_carbon.png | 249 kB | Cumulative carbon pathways 2025–2080 under 4 scenarios (BAU SSP2-4.5, R5+PV immediate SSP2-4.5, stepwise 0→100% by 2060, R5+PV SSP5-8.5). Immediate rollout avoids 114,909 kt (115 Mt) vs BAU. |
-| fig14_policy_summary.png | 251 kB | Policy dashboard: (a) headline KPIs, (b) per-era CO₂ savings pie, (c) top-10 priority grids bar, (d) Paper 1 vs Paper 3 carbon savings comparison (4.10×). |
+| fig14_policy_summary.png | 570 kB | Policy dashboard (redesigned): Row 1 — 3 big-number KPI cards (18,826 buildings / −44.3% net demand / 4,127 kt CO₂ avoided); Row 2 — 4 top-50 grid stats; Row 3 — (a) spatial map, (b) top-10 horizontal bar, (c) Paper 1 vs Paper 3 comparison (4.10×). |
 
 ## Style
 

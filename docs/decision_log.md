@@ -553,3 +553,44 @@ Linear interpolation between waypoints. The 2050 value aligns with China's annou
 
 **Figures generated:** 14/14 (all present in figure/); contact sheet in figure/all_figures_contact.png
 **Scripts:** `code/postprocessing/style.py`, `code/postprocessing/generate_all_figures.py`
+
+---
+
+## DEC-025 — Figure Refinements: 6 figures revised per review feedback (Task 9b)
+
+**Date:** 2026-04-19
+
+**fig01 — Single-panel map + China inset:**
+- Removed duplicate era bar chart (duplicates fig03)
+- Enlarged to 10×8" single-panel map; added mainland China inset via `ax.inset_axes()`
+- China outline from hardcoded ~25-vertex polygon (naturalearth_lowres unavailable in this geopandas version)
+- *Technical note:* `inset_axes` from mpl_toolkits with mixed bbox_to_anchor/bbox_transform caused image-size corruption (5.4M px); fixed by using `ax.inset_axes([x, y, w, h])` with axes-fraction coords and manual `subplots_adjust`
+
+**fig02 — 3-section flowchart:**
+- Reorganized into labeled sections ①②③ (Input data / Analysis / Output)
+- Input boxes made uniform size (same as T1-T2 row below)
+- T3-T5 and T6-T8 split into two rows; T8 moved into analysis section
+- Figure size enlarged to 9.0×6.5"
+
+**fig06 — Redesigned PV panels:**
+- Old panel (a) "all buildings" removed (diluted by non-HP buildings; nearly all white)
+- New panel (a) = HP-only grid choropleth (was old panel b)
+- New panel (b) = typology bar chart with HP fraction secondary axis
+- PV sanity check: LowRise 1,272 + MidRise 249 + HighRise 81 = 1,602 GWh ≈ 1,603 GWh ✓
+
+**fig08 — Fix divide-by-zero in panel (b):**
+- Threshold: baseline_cool_GWh < 5% of annual (127 GWh) → hatched "undefined" bars
+- Active cooling season: Apr–Oct (Apr, May, Oct show 100% coverage = PV > small cooling load)
+- Jan–Mar, Nov–Dec: hatched grey bars with annotation
+
+**fig11 — 3 panels, fix top-50 visibility:**
+- Old panel (a) had top-50 in YlOrRd and rest in Blues — visually identical
+- Fixed: all occupied grids = Blues (alpha 0.7); top-50 overlaid with red outlines only (facecolor="none", edgecolor="#C0392B", lw=2.0)
+- Added panel (c): bar chart showing P1-only (118) / both (28) / P3-new (22) grid overlap
+- Fig width expanded to 11.0" for 3 panels
+
+**fig14 — Full redesign as 2-row policy dashboard:**
+- Row 0: 3 large KPI cards with colored backgrounds
+- Row 1: 4 smaller top-50 stats with gold bottom border
+- Row 2: 3 panels — spatial map, horizontal top-10 bar (no label overlap), comparison bar
+- Figure size: 13.0×9.5"; saved with direct fig.savefig (no bbox_inches="tight") to avoid layout corruption
