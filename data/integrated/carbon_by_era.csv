@@ -1,0 +1,4 @@
+era,baseline_GWh,baseline_carbon_kt,r5_GWh,r5_carbon_kt,pv_GWh,r5pv_net_GWh,r5pv_carbon_kt,r5_carbon_savings_kt,pv_carbon_savings_kt,combined_savings_kt
+era1,6930.9,3952.7,3670.7,2093.4,505.83,3164.8,1804.9,1859.3,288.47,2147.8
+era2,5559.3,3170.5,3637.5,2074.5,634.11,3003.4,1712.8,1096.0,361.63,1457.6
+era3,2891.4,1649.0,2439.6,1391.3,462.8,1976.8,1127.4,257.6,263.94,521.6

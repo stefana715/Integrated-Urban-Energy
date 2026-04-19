@@ -498,3 +498,36 @@ Rationale: Solar and retrofit are the primary interventions (direct deployment m
 
 **Scripts:** `code/analysis/integrated_grid_ranking.py`
 **Outputs:** `integrated_grid_ranking.csv`, `policy_summary.csv`, `validation_task7.md`, `figure/fig11_integrated_grid.png`
+
+---
+
+## DEC-023 — Task 8 Grid Decarbonisation Trajectory and Carbon Accounting
+
+**Date:** 2026-04-19
+
+**Decision (grid emission factor trajectory):**
+| Year | EF (tCO₂/MWh) | Basis |
+|---|---|---|
+| 2025 | 0.5703 | MEE/NBS 2022 Hunan provincial factor (Paper 1 ref [25]) |
+| 2050 | 0.30 | China dual-carbon goal trajectory (~50% grid decarbonisation by 2050) |
+| 2080 | 0.10 | Near-zero grid under Net Zero scenarios (consistent with IEA NZE pathway) |
+
+Linear interpolation between waypoints. The 2050 value aligns with China's announced carbon neutrality trajectory and NDC update (NEA long-range planning scenarios). The 2080 value assumes near-complete grid decarbonisation by late-century.
+
+**Sensitivity:** Using constant 0.5703 tCO₂/MWh across all years gives cumulative 2025–2080 savings (Scenario B) of ~238 Mt (vs 115 Mt with declining factor). The declining-factor scenario is more realistic and avoids overstating the carbon benefit of late-century interventions in a decarbonising grid.
+
+**Carbon accounting formula:** carbon_kt = demand_GWh × grid_factor (tCO₂/MWh = ktCO₂/GWh). Verified: 8,144.8 × 0.5703 = 4,645 kt R5+PV scenario; baseline 15,381.6 × 0.5703 = 8,772 kt; savings = 4,127 kt ✓
+
+**Limitation:** No scope-3 emissions modelled (embodied carbon of retrofit materials or PV panel manufacture). Typical envelope retrofit embodied carbon ~10–30 kgCO₂/m² → ~0.7–2.2 Mt for 72 Mm² total floor area; payback period ≈ 0.2–0.5 years at 4,127 kt/yr avoided. This is negligible vs. 55-year operational savings.
+
+**Key Task 8 results:**
+- Current baseline: 8,772 kt CO₂/yr
+- R5+PV: 4,645 kt CO₂/yr (−4,127 kt/yr, −47%)
+- Cumulative 2025–2050 (immediate rollout): 75,709 kt CO₂ saved
+- Cumulative 2025–2080 (immediate rollout): 114,909 kt CO₂ saved
+- Stepwise rollout (0%→100% by 2060) saves 63,480 kt (55% of immediate)
+- Paper 3 R5+PV = 4.10× more impactful than Paper 1 PV-only
+- Retrofit accounts for 78% of combined R5+PV carbon savings
+
+**Scripts:** `code/analysis/carbon_emissions.py`
+**Outputs:** `carbon_annual_scenarios.csv`, `carbon_by_era.csv`, `carbon_by_grid.csv`, `carbon_cumulative_pathways.csv`, `validation_task8.md`, `figure/fig12_carbon.png`, `figure/fig13_cumulative_carbon.png`

@@ -95,10 +95,9 @@
 - [x] **Task 5:** PV generation + monthly supply-demand matching ✓ (2026-04-19) — City HP PV 1,603 GWh/yr; 100% self-consumption (all months); coincidence factor 0.425; combined R5+PV = 7,237 GWh (47.0% of baseline). See validation_task5.md.
 - [x] **Task 6:** Climate change scenario analysis ✓ (2026-04-19) — Baseline 2080 SSP585 = 14,701 GWh (−4.4%, heating savings exceed cooling rise); R5+PV net grows to 8,668 GWh (+6.4%); H/C tipping at 2050 SSP585; CO₂ avoided 4,127 kt/yr. See validation_task6.md.
 - [x] **Task 7:** Integrated grid-level priority scoring ✓ (2026-04-19) — Top 50 grids identified; 28/50 overlap with Paper 1; 22 new grids; top-50 = 21.3% of city CO₂ savings; Yuelu/Tianxin/Furong dominant. See validation_task7.md.
-- [ ] **Task 8:** Integrated grid-level scoring and priority ranking
-- [ ] **Task 9:** Carbon emission calculations
-- [ ] **Task 10:** Generate all figures (target: 14)
-- [ ] **Task 11:** Write manuscript draft
+- [x] **Task 8:** Consolidated carbon accounting ✓ (2026-04-19) — R5+PV avoids 4,127 kt/yr; cumulative 2025–2080 = 115 Mt saved; Paper 3 is 4.10× Paper 1 PV-only; H/C tipping 2050 SSP585. See validation_task8.md.
+- [ ] **Task 9:** Figures finalisation
+- [ ] **Task 10:** Manuscript writing
 
 ---
 
