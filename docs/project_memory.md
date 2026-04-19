@@ -92,8 +92,9 @@
 - [x] **Task 2:** Building stock classification — assign era and typology to 18,826 buildings ✓ v1–v5 (2026-04-19). **v5 is canonical final (73.9/21.4/4.7% LowRise/MidRise/HighRise, 72 Mm², PV 0.91× Paper 1). Task 3 GREENLIT.**
 - [x] **Task 3:** City-scale baseline energy estimation ✓ (2026-04-19) — 15,382 GWh/yr total; Era 1 = 45.1%; H/C ratio = 1.79; city EUI = 213.5 kWh/m²/yr. See baseline_city_totals.csv, validation_task3.md.
 - [x] **Task 4:** City-scale retrofit savings calculation ✓ (2026-04-19) — R5 saves 5,634 GWh/yr (36.6%); post-R5 EUI 135.3 kWh/m²; Era 1 = 3,260 GWh saved. See retrofit_city_totals.csv, validation_task4.md.
-- [x] **Task 5:** PV generation + monthly supply-demand matching ✓ (2026-04-19) — City HP PV 1,603 GWh/yr; 100% self-consumption (all months); coincidence factor 0.425; combined R5+PV = 6,817 GWh (44.3% of baseline). See validation_task5.md.
-- [ ] **Task 6:** Climate scenario scaling
+- [x] **Task 5:** PV generation + monthly supply-demand matching ✓ (2026-04-19) — City HP PV 1,603 GWh/yr; 100% self-consumption (all months); coincidence factor 0.425; combined R5+PV = 7,237 GWh (47.0% of baseline). See validation_task5.md.
+- [x] **Task 6:** Climate change scenario analysis ✓ (2026-04-19) — Baseline 2080 SSP585 = 14,701 GWh (−4.4%, heating savings exceed cooling rise); R5+PV net grows to 8,668 GWh (+6.4%); H/C tipping at 2050 SSP585; CO₂ avoided 4,127 kt/yr. See validation_task6.md.
+- [ ] **Task 7:** Grid-level integrated scoring and priority ranking — NEXT
 - [ ] **Task 7:** Climate scenario scaling
 - [ ] **Task 8:** Integrated grid-level scoring and priority ranking
 - [ ] **Task 9:** Carbon emission calculations

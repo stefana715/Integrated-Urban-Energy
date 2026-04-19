@@ -434,3 +434,39 @@ Summer (Jul peak) as expected for Changsha's radiation climatology.
 
 **Scripts:** `code/analysis/pv_supply_demand.py`
 **Outputs:** `pv_city_building.csv`, `monthly_profiles.csv`, `monthly_supply_demand.csv`, `validation_task5.md`, `figure/fig07_supply_demand.png`, `figure/fig08_seasonal_match.png`
+
+---
+
+## DEC-021 — Task 6 Climate Scaling: Assumptions and Limitations
+
+**Date:** 2026-04-19
+
+**Decision (scaling method):** Apply Paper 2's per-m² climate factors uniformly to all buildings in the same (era, retrofit_status) class:
+  `city_heat_scenario = Σ [heat_eui_current[era] × h_factor[era, retrofit, scenario] × floor_area_i]`
+where `h_factor = heat_eui[scenario] / heat_eui[current]` from climate_results.csv.
+
+**Rationale:** Paper 2 simulated archetypes with Changsha TMYx + 4 future morphed EPW files (2050/2080 × SSP245/SSP585 from CCWorldWeatherGen). The per-era relative factors are the most defensible transfer mechanism available.
+
+**Observation — Era 1 and Era 2 R5 identical:** climate_results.csv contains the same R5_Combined values for both Era 1 and Era 2 across all 5 scenarios. This is expected: Paper 2 used the same MidRise R5 archetype for both eras (post-retrofit envelope differences are erased). Climate factors are therefore identical for Era 1 R5 and Era 2 R5.
+
+**Decision (PV constant across scenarios):** PV output assumed = 1,603 GWh/yr across all climate scenarios. Temperature penalty is −0.4%/K cell temperature effect. For 2080 SSP585 (+4.04°C annual), this yields −1.6% PV → −25.6 GWh — negligible relative to the 523 GWh demand increase under R5. Assumed constant and documented as conservative.
+
+**Decision (other end-use constant):** "Other" (lighting/appliances/DHW) held constant at current-climate Paper 2 values. DHW heating demand would decrease slightly with warmer tap water under future climates; fan energy would increase with more cooling hours. These offsetting effects are second-order and omitted.
+
+**Limitation — no urban heat island (UHI) amplification:** Climate morphing applies city-wide warming uniformly. Changsha's UHI could add 1–2°C above regional warming in dense urban core grids, amplifying cooling demand locally. This is not captured.
+
+**Limitation — uniform era-level factors:** No typology-level (LowRise/MidRise/HighRise) differentiation within each era. Compact LowRise buildings may have lower climate sensitivity than isolated towers. Standard UBEM limitation; cite accordingly.
+
+**Key city-scale results (2026-04-19):**
+| Scenario | Baseline gross (GWh) | R5 gross (GWh) | R5+PV net (GWh) |
+|---|---|---|---|
+| Current | 15,381.6 | 9,747.8 | 8,144.8 |
+| 2050 SSP2-4.5 | 14,946.5 | 9,937.5 | 8,334.5 |
+| 2050 SSP5-8.5 | 14,867.4 | 9,991.7 | 8,388.7 |
+| 2080 SSP2-4.5 | 14,831.5 | 10,013.3 | 8,410.3 |
+| 2080 SSP5-8.5 | 14,700.9 | 10,270.9 | 8,667.9 |
+
+H/C tipping point: 2050_SSP585 (H/C = 0.97 < 1). City heating first drops below cooling at SSP5-8.5 forcing by 2050.
+
+**Scripts:** `code/analysis/climate_city.py`
+**Outputs:** `climate_factors.csv`, `climate_city_results.csv`, `climate_net_demand.csv`, `validation_task6.md`, `figure/fig09_climate_city.png`, `figure/fig10_hc_shift.png`
