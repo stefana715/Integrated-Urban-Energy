@@ -220,3 +220,44 @@
 - **HighRise**: >6 floors — height proxy from Paper 1 (Era 3 archetype)
 - **Era assignment**: OSM `start_date` tag preferred; infer from building type + height + urban development zone where tag absent
 - **Scale-up assumption**: Paper 2 per-m² EUI and PV generation values are transferable to classified building stock via floor-area weighting
+
+---
+
+## Task 9 — Unified Figure Generation (2026-04-19)
+
+**Status: COMPLETE**
+
+**Output scripts:**
+- `code/postprocessing/style.py` — unified color palette, font sizes, DPI, figsize constants
+- `code/postprocessing/generate_all_figures.py` — generates all 14 publication figures
+
+**14 figures generated (all 300 DPI, 7.1" or 3.5" wide):**
+| Figure | File | Size |
+|--------|------|------|
+| fig01 | fig01_study_area.png | 546 kB |
+| fig02 | fig02_methodology_flowchart.png | 218 kB |
+| fig03 | fig03_era_typology.png | 159 kB |
+| fig04 | fig04_city_baseline.png | 123 kB |
+| fig05 | fig05_city_retrofit.png | 136 kB |
+| fig06 | fig06_pv_spatial.png | 276 kB |
+| fig07 | fig07_supply_demand.png | 138 kB |
+| fig08 | fig08_seasonal_match.png | 136 kB |
+| fig09 | fig09_climate_city.png | 143 kB |
+| fig10 | fig10_hc_shift.png | 142 kB |
+| fig11 | fig11_integrated_grid.png | 353 kB |
+| fig12 | fig12_carbon.png | 161 kB |
+| fig13 | fig13_cumulative_carbon.png | 249 kB |
+| fig14 | fig14_policy_summary.png | 251 kB |
+
+**Contact sheet:** `figure/all_figures_contact.png` (1,260 kB)
+
+**Figures with incomplete data (noted):**
+- fig01: era colours correct; no basemap (contextily unavailable) — acceptable for final version
+- fig02: schematic flowchart, no external data required
+- fig06: PV spatial from individual building annual_pv_kwh_v5 aggregated to grid
+
+**Style notes:**
+- Font: Arial 9/10/11 pt; spine: top+right removed
+- Era colours: Era1=#D94F3D, Era2=#F0A500, Era3=#3A86C8
+- Typology stored as lowercase in GeoJSON ('lowrise', 'midrise', 'highrise'); style.py keys are TitleCase
+- Backend forced to Agg (macosx backend caused layout corruption with constrained_layout)

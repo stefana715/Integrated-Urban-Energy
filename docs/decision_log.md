@@ -531,3 +531,25 @@ Linear interpolation between waypoints. The 2050 value aligns with China's annou
 
 **Scripts:** `code/analysis/carbon_emissions.py`
 **Outputs:** `carbon_annual_scenarios.csv`, `carbon_by_era.csv`, `carbon_by_grid.csv`, `carbon_cumulative_pathways.csv`, `validation_task8.md`, `figure/fig12_carbon.png`, `figure/fig13_cumulative_carbon.png`
+
+---
+
+## DEC-024 — Unified Figure Style and Generation (Task 9)
+
+**Date:** 2026-04-19
+**Decision:** Create `code/postprocessing/style.py` with all shared visual constants and `code/postprocessing/generate_all_figures.py` to regenerate all 14 publication figures from `data/integrated/` CSVs and GeoJSONs.
+
+**Style constants:**
+- Font: Arial 9/10/11 pt (base/label/title); DPI 300 print / 150 screen
+- Width: 7.1" (2-column journal), 3.5" (single-column), 5.0" (map), 4.5" (flowchart)
+- Era colours: #D94F3D / #F0A500 / #3A86C8
+- Typology colours: LowRise #7BBFA5, MidRise #4A90D9, HighRise #2C3E6B
+- Backend: forced to Agg (macosx backend caused 554,986-pixel height rendering bug with constrained_layout)
+
+**Data notes (for maintenance):**
+- GeoJSON `typology` column is lowercase ('lowrise', 'midrise', 'highrise'); style.py uses TitleCase keys for display
+- `is_high_potential` in GeoJSON is int (0/1), not bool — filter with `== 1`
+- fig03 uses `subplots_adjust` (not tight_layout) to avoid bbox_inches='tight' layout failure
+
+**Figures generated:** 14/14 (all present in figure/); contact sheet in figure/all_figures_contact.png
+**Scripts:** `code/postprocessing/style.py`, `code/postprocessing/generate_all_figures.py`

@@ -1,0 +1,1159 @@
+"""
+generate_all_figures.py — Regenerate all 14 publication-quality figures for Paper 3.
+
+Usage:
+    python code/postprocessing/generate_all_figures.py
+
+Outputs saved to figure/ (creates directory if missing).
+Contact sheet saved to figure/all_figures_contact.png.
+"""
+
+import os
+import sys
+
+# Make project root importable
+ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+POSTPROC_DIR = os.path.dirname(os.path.abspath(__file__))
+sys.path.insert(0, ROOT)
+sys.path.insert(0, POSTPROC_DIR)
+
+import warnings
+warnings.filterwarnings("ignore")
+
+import matplotlib
+matplotlib.use("Agg")   # force non-interactive backend before pyplot import
+
+import numpy as np
+import pandas as pd
+import geopandas as gpd
+import matplotlib as mpl
+import matplotlib.pyplot as plt
+import matplotlib.patches as mpatches
+import matplotlib.gridspec as gridspec
+from matplotlib.lines import Line2D
+from matplotlib.colors import Normalize, LogNorm
+from matplotlib.cm import ScalarMappable
+import matplotlib.ticker as ticker
+
+# Load unified style
+from style import (
+    apply_style, savefig,
+    FIGSIZE_SINGLE, FIGSIZE_WIDE, FIGSIZE_MAP, FIGSIZE_TALL, FIGSIZE_FLOW,
+    ERA_COLORS, ERA_LABELS, TYPOLOGY_COLORS,
+    RETROFIT_COLORS, SCENARIO_ORDER, SCENARIO_LABELS, SCENARIO_COLORS,
+    HEATING_COLOR, COOLING_COLOR, OTHER_COLOR, PV_COLOR, NET_COLOR,
+    CARBON_BASELINE_COLOR, CARBON_R5PV_COLOR, CARBON_STEP_COLOR, CARBON_SSP585_COLOR,
+    GRID_FACE_COLOR, HIGHLIGHT_COLOR,
+    FONT_SIZE_BASE, FONT_SIZE_LABEL, FONT_SIZE_TITLE, FONT_SIZE_LEGEND,
+    FONT_SIZE_ANNOT, DPI_PRINT, label_bar, despine,
+)
+
+apply_style()
+
+# ---------------------------------------------------------------------------
+# Paths
+# ---------------------------------------------------------------------------
+FIG_DIR  = os.path.join(ROOT, "figure")
+DATA_INT = os.path.join(ROOT, "data", "integrated")
+DATA_P1  = os.path.join(ROOT, "data", "from_paper1")
+os.makedirs(FIG_DIR, exist_ok=True)
+
+def p1(f): return os.path.join(DATA_P1, f)
+def di(f): return os.path.join(DATA_INT, f)
+
+# ---------------------------------------------------------------------------
+# Lazy-load shared data (cached once)
+# ---------------------------------------------------------------------------
+_cache = {}
+
+def load(key, fn):
+    if key not in _cache:
+        _cache[key] = fn()
+    return _cache[key]
+
+def get_buildings():
+    return load("bld", lambda: gpd.read_file(
+        os.path.join(ROOT, "data", "integrated", "classified_buildings.geojson")))
+
+def get_grid_geo():
+    return load("grid_geo", lambda: gpd.read_file(p1("grid_changsha_urban_core_solar_baseline.geojson")))
+
+def get_study_area():
+    return load("sa", lambda: gpd.read_file(p1("study_area_changsha_urban_core.geojson")))
+
+def get_grid_ranking():
+    return load("grank", lambda: pd.read_csv(di("integrated_grid_ranking.csv")))
+
+def get_baseline_era():
+    return load("bera", lambda: pd.read_csv(di("baseline_by_era.csv")))
+
+def get_retrofit_totals():
+    return load("rtot", lambda: pd.read_csv(di("retrofit_city_totals.csv")))
+
+def get_retrofit_era():
+    return load("rera", lambda: pd.read_csv(di("retrofit_by_era.csv")))
+
+def get_monthly():
+    return load("month", lambda: pd.read_csv(di("monthly_supply_demand.csv")))
+
+def get_climate():
+    return load("clim", lambda: pd.read_csv(di("climate_city_results.csv")))
+
+def get_carbon_ann():
+    return load("cann", lambda: pd.read_csv(di("carbon_annual_scenarios.csv")))
+
+def get_carbon_cum():
+    return load("ccum", lambda: pd.read_csv(di("carbon_cumulative_pathways.csv")))
+
+def get_carbon_era():
+    return load("cera", lambda: pd.read_csv(di("carbon_by_era.csv")))
+
+def get_carbon_grid():
+    return load("cgrid", lambda: pd.read_csv(di("carbon_by_grid.csv")))
+
+def get_climate_factors():
+    return load("cfact", lambda: pd.read_csv(di("climate_factors.csv")))
+
+# ---------------------------------------------------------------------------
+# Helpers
+# ---------------------------------------------------------------------------
+
+MONTH_NAMES = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"]
+
+def _add_north_arrow(ax, x=0.95, y=0.92, size=0.04):
+    ax.annotate("N", xy=(x, y), xycoords="axes fraction",
+                fontsize=FONT_SIZE_ANNOT + 1, fontweight="bold",
+                ha="center", va="bottom")
+    ax.annotate("", xy=(x, y + size), xytext=(x, y - size),
+                xycoords="axes fraction", textcoords="axes fraction",
+                arrowprops=dict(arrowstyle="-|>", color="black", lw=1.2))
+
+def _add_scalebar_km(ax, km=5, lon0=112.855, lat0=28.108):
+    """Approximate scale bar in geographic coords (EPSG:4326)."""
+    deg_per_km = 1 / 111.0  # rough
+    dx = km * deg_per_km
+    ax.plot([lon0, lon0 + dx], [lat0, lat0], color="black", lw=2, transform=ax.transData)
+    ax.text(lon0 + dx / 2, lat0 - 0.005, f"{km} km",
+            ha="center", va="top", fontsize=FONT_SIZE_ANNOT - 1, transform=ax.transData)
+
+# ===========================================================================
+# FIG 01 — Study area map (buildings coloured by era)
+# ===========================================================================
+
+def fig01_study_area():
+    bld = get_buildings()
+    sa  = get_study_area()
+
+    fig, axes = plt.subplots(1, 2, figsize=FIGSIZE_MAP,
+                             gridspec_kw={"width_ratios": [2.5, 1.5]})
+
+    ax_map, ax_inset = axes
+
+    # ---- left: building footprints coloured by era -----------------------
+    era_map = {"era1": ERA_COLORS["era1"], "era2": ERA_COLORS["era2"], "era3": ERA_COLORS["era3"]}
+    colors = bld["era_final"].map(era_map).fillna("#CCCCCC")
+
+    sa.boundary.plot(ax=ax_map, color="black", linewidth=0.8, zorder=3)
+    bld.plot(ax=ax_map, color=colors.values, linewidth=0, markersize=0.2, zorder=2)
+
+    # legend
+    patches = [mpatches.Patch(facecolor=v, label=ERA_LABELS[k]) for k, v in era_map.items()]
+    ax_map.legend(handles=patches, loc="lower left", fontsize=FONT_SIZE_LEGEND,
+                  framealpha=0.85, edgecolor="none")
+    ax_map.set_title("(a) Building stock by construction era", fontsize=FONT_SIZE_TITLE, pad=4)
+    ax_map.set_xlabel("Longitude (°E)", fontsize=FONT_SIZE_LABEL)
+    ax_map.set_ylabel("Latitude (°N)", fontsize=FONT_SIZE_LABEL)
+    _add_north_arrow(ax_map)
+    _add_scalebar_km(ax_map, km=3, lon0=113.01, lat0=28.103)
+    ax_map.tick_params(labelsize=FONT_SIZE_BASE - 1)
+
+    # ---- right: bar chart of era/typology composition --------------------
+    bera = get_baseline_era()
+    eras  = ["era1", "era2", "era3"]
+    counts = [bera.loc[bera["era"] == e, "building_count"].values[0] for e in eras]
+    labels = [ERA_LABELS[e] for e in eras]
+    xpos = np.arange(len(eras))
+    bars = ax_inset.bar(xpos, counts, color=[ERA_COLORS[e] for e in eras],
+                        width=0.55, zorder=2)
+    ax_inset.set_xticks(xpos)
+    ax_inset.set_xticklabels(["Era 1\n(pre-2000)", "Era 2\n(2000–09)", "Era 3\n(2010–20)"],
+                              fontsize=FONT_SIZE_BASE - 1)
+    ax_inset.set_ylabel("Building count", fontsize=FONT_SIZE_LABEL)
+    ax_inset.set_title("(b) Era distribution", fontsize=FONT_SIZE_TITLE, pad=4)
+    ax_inset.yaxis.set_major_formatter(ticker.FuncFormatter(lambda x, _: f"{x/1000:.1f}k"))
+    despine(ax_inset)
+    for bar, cnt in zip(bars, counts):
+        ax_inset.text(bar.get_x() + bar.get_width() / 2, cnt + 50, f"{cnt:,}",
+                      ha="center", va="bottom", fontsize=FONT_SIZE_ANNOT)
+    ax_inset.set_ylim(0, max(counts) * 1.18)
+    ax_inset.grid(axis="y", lw=0.4, alpha=0.5)
+
+    fig.suptitle("Study area: Changsha urban core  (18,826 OSM buildings)", y=1.01,
+                 fontsize=FONT_SIZE_TITLE + 1, fontweight="bold")
+    plt.tight_layout()
+    out = os.path.join(FIG_DIR, "fig01_study_area.png")
+    savefig(fig, out)
+    return out
+
+
+# ===========================================================================
+# FIG 02 — Methodology flowchart
+# ===========================================================================
+
+def fig02_methodology_flowchart():
+    fig, ax = plt.subplots(figsize=FIGSIZE_FLOW)
+    ax.set_xlim(0, 10)
+    ax.set_ylim(0, 8)
+    ax.axis("off")
+
+    # Box helper
+    def box(ax, x, y, w, h, text, fc="#EFF3FF", ec="#4393C3", fs=FONT_SIZE_ANNOT, bold=False):
+        rect = mpatches.FancyBboxPatch((x - w / 2, y - h / 2), w, h,
+                                       boxstyle="round,pad=0.1",
+                                       facecolor=fc, edgecolor=ec, linewidth=0.8, zorder=2)
+        ax.add_patch(rect)
+        ax.text(x, y, text, ha="center", va="center", fontsize=fs,
+                fontweight="bold" if bold else "normal", wrap=True,
+                multialignment="center", zorder=3)
+
+    def arrow(ax, x0, y0, x1, y1):
+        ax.annotate("", xy=(x1, y1), xytext=(x0, y0),
+                    arrowprops=dict(arrowstyle="-|>", color="#555555", lw=1.0))
+
+    # ── Input boxes (row y=7) ──────────────────────────────────────────────
+    box(ax, 2.0, 7.0, 3.2, 0.8, "Paper 1 — OSM Solar Screening\n18,826 buildings | 1,764 GWh PV",
+        fc="#FFF5EB", ec="#D94F3D")
+    box(ax, 8.0, 7.0, 3.2, 0.8, "Paper 2 — EnergyPlus Archetypes\n3 eras × 5 retrofits × 5 climates",
+        fc="#EFF3FF", ec="#3A86C8")
+
+    # ── Integration box (row y=5.7) ────────────────────────────────────────
+    box(ax, 5.0, 5.5, 3.8, 0.8, "Task 1–2: Building stock integration\n& classification (v5, 18,826 bldgs)",
+        fc="#F7F7F7", ec="#888888", bold=True)
+    arrow(ax, 2.0, 6.6, 3.8, 5.9)
+    arrow(ax, 8.0, 6.6, 6.2, 5.9)
+
+    # ── Analysis row (y=4.0) ──────────────────────────────────────────────
+    xs = [1.2, 3.4, 5.5, 7.5, 9.3]
+    labels = [
+        "T3: City-scale\nbaseline\n15,382 GWh/yr",
+        "T4: Retrofit\nsavings\nR5=−36.6%",
+        "T5: PV supply-\ndemand match\n1,603 GWh HP",
+        "T6: Climate\nscenarios\n5 futures",
+        "T7: Grid\npriority\ntop-50",
+    ]
+    for x, lab in zip(xs, labels):
+        box(ax, x, 4.0, 1.7, 1.0, lab, fc="#FFFFD4", ec="#888800")
+        arrow(ax, 5.0, 5.1, x, 4.5)
+
+    # ── Carbon accounting (y=2.5) ─────────────────────────────────────────
+    box(ax, 5.0, 2.5, 5.0, 0.8,
+        "T8: Carbon accounting  |  4,127 kt CO₂/yr saved  |  114,909 kt cumulative (2025–2080)",
+        fc="#F1EEF6", ec="#9E78B8", bold=True)
+    for x in xs:
+        arrow(ax, x, 3.5, 5.0, 2.9)
+
+    # ── Output (y=1.2) ───────────────────────────────────────────────────
+    box(ax, 5.0, 1.2, 6.0, 0.7,
+        "Paper 3: City-scale integrated retrofit + rooftop PV assessment (Changsha, China)",
+        fc="#E5F5E0", ec="#31A354", bold=True)
+    arrow(ax, 5.0, 2.1, 5.0, 1.55)
+
+    ax.set_title("Paper 3 methodology overview", fontsize=FONT_SIZE_TITLE + 1,
+                 fontweight="bold", pad=6)
+    plt.tight_layout()
+    out = os.path.join(FIG_DIR, "fig02_methodology_flowchart.png")
+    savefig(fig, out)
+    return out
+
+
+# ===========================================================================
+# FIG 03 — Building stock classification (era × typology)
+# ===========================================================================
+
+def fig03_era_typology():
+    bld = get_buildings()
+
+    fig, axes = plt.subplots(1, 3, figsize=(FIGSIZE_WIDE[0], 4.0))
+
+    eras   = ["era1", "era2", "era3"]
+    typos_key   = ["lowrise", "midrise", "highrise"]   # GeoJSON stores lowercase
+    typos_label = ["LowRise", "MidRise", "HighRise"]
+    total_bld = len(bld)
+
+    # ---- panel a: era bar ------------------------------------------------
+    ax = axes[0]
+    counts = [len(bld[bld["era_final"] == e]) for e in eras]
+    xpos_a = np.arange(len(eras))
+    bars = ax.bar(xpos_a, counts, color=[ERA_COLORS[e] for e in eras], width=0.5, zorder=2)
+    ax.set_ylabel("Building count", fontsize=FONT_SIZE_LABEL)
+    ax.set_title("(a) Era distribution", fontsize=FONT_SIZE_TITLE, pad=4)
+    ax.set_ylim(0, max(counts) * 1.30)
+    ax.set_xticks(xpos_a)
+    ax.set_xticklabels(["Era 1", "Era 2", "Era 3"], fontsize=FONT_SIZE_BASE)
+    for bar, cnt in zip(bars, counts):
+        pct = cnt / total_bld * 100
+        ax.text(bar.get_x() + bar.get_width() / 2, cnt + 60,
+                f"{cnt:,} ({pct:.1f}%)", ha="center", va="bottom", fontsize=FONT_SIZE_ANNOT)
+    despine(ax)
+    ax.grid(axis="y", lw=0.4, alpha=0.5)
+
+    # ---- panel b: typology bar -------------------------------------------
+    ax = axes[1]
+    tcounts = [len(bld[bld["typology"] == t]) for t in typos_key]
+    xpos_b = np.arange(len(typos_key))
+    tbars = ax.bar(xpos_b, tcounts, color=[TYPOLOGY_COLORS[t] for t in typos_label],
+                   width=0.5, zorder=2)
+    ax.set_ylabel("Building count", fontsize=FONT_SIZE_LABEL)
+    ax.set_title("(b) Typology distribution", fontsize=FONT_SIZE_TITLE, pad=4)
+    ax.set_ylim(0, max(tcounts) * 1.30)
+    ax.set_xticks(xpos_b)
+    ax.set_xticklabels(typos_label, fontsize=FONT_SIZE_BASE)
+    for bar, cnt in zip(tbars, tcounts):
+        pct = cnt / total_bld * 100
+        ax.text(bar.get_x() + bar.get_width() / 2, cnt + 60,
+                f"{cnt:,} ({pct:.1f}%)", ha="center", va="bottom", fontsize=FONT_SIZE_ANNOT)
+    despine(ax)
+    ax.grid(axis="y", lw=0.4, alpha=0.5)
+
+    # ---- panel c: era × typology stacked ---------------------------------
+    ax = axes[2]
+    xpos_c = np.arange(len(eras))
+    bottoms = np.zeros(len(eras))
+    for tk, tl in zip(typos_key, typos_label):
+        vals = np.array([len(bld[(bld["era_final"] == e) & (bld["typology"] == tk)]) for e in eras])
+        ax.bar(xpos_c, vals, bottom=bottoms, label=tl,
+               color=TYPOLOGY_COLORS[tl], width=0.5, zorder=2)
+        bottoms += vals
+    ax.set_xticks(xpos_c)
+    ax.set_xticklabels(["Era 1", "Era 2", "Era 3"], fontsize=FONT_SIZE_BASE)
+    ax.set_ylabel("Building count", fontsize=FONT_SIZE_LABEL)
+    ax.set_title("(c) Era × typology", fontsize=FONT_SIZE_TITLE, pad=4)
+    ax.legend(fontsize=FONT_SIZE_LEGEND, loc="upper right", framealpha=0.85, edgecolor="none")
+    despine(ax)
+    ax.grid(axis="y", lw=0.4, alpha=0.5)
+
+    fig.suptitle("Building stock classification  (18,826 buildings, Changsha urban core)",
+                 fontsize=FONT_SIZE_TITLE + 1, fontweight="bold")
+    fig.subplots_adjust(left=0.07, right=0.97, bottom=0.12, top=0.88, wspace=0.38)
+    out = os.path.join(FIG_DIR, "fig03_era_typology.png")
+    fig.savefig(out, dpi=DPI_PRINT)
+    plt.close(fig)
+    return out
+
+
+# ===========================================================================
+# FIG 04 — City-scale baseline energy by era
+# ===========================================================================
+
+def fig04_city_baseline():
+    bera = get_baseline_era()
+    eras = ["era1", "era2", "era3"]
+    eras_present = bera["era"].tolist()
+
+    fig, axes = plt.subplots(1, 2, figsize=FIGSIZE_WIDE)
+
+    # ---- panel a: stacked bar (H / C / Other) per era -------------------
+    ax = axes[0]
+    h_vals = [bera.loc[bera["era"] == e, "heating_GWh"].values[0] for e in eras]
+    c_vals = [bera.loc[bera["era"] == e, "cooling_GWh"].values[0] for e in eras]
+    o_vals = [bera.loc[bera["era"] == e, "other_GWh"].values[0] for e in eras]
+    xlabels = [ERA_LABELS[e].split(" (")[0] for e in eras]
+    xpos = np.arange(len(eras))
+
+    ax.bar(xpos, h_vals, color=HEATING_COLOR, label="Heating", zorder=2, width=0.5)
+    ax.bar(xpos, c_vals, bottom=h_vals, color=COOLING_COLOR, label="Cooling", zorder=2, width=0.5)
+    ax.bar(xpos, o_vals, bottom=[h + c for h, c in zip(h_vals, c_vals)],
+           color=OTHER_COLOR, label="Other (lighting/DHW)", zorder=2, width=0.5)
+    totals = [h + c + o for h, c, o in zip(h_vals, c_vals, o_vals)]
+    for x, tot in zip(xpos, totals):
+        ax.text(x, tot + 30, f"{tot:.0f} GWh", ha="center", va="bottom", fontsize=FONT_SIZE_ANNOT)
+    ax.set_xticks(xpos)
+    ax.set_xticklabels(xlabels)
+    ax.set_ylabel("Annual energy (GWh/yr)", fontsize=FONT_SIZE_LABEL)
+    ax.set_title("(a) Energy by era and end-use", fontsize=FONT_SIZE_TITLE, pad=4)
+    ax.legend(fontsize=FONT_SIZE_LEGEND, loc="upper right", framealpha=0.85, edgecolor="none")
+    ax.set_ylim(0, max(totals) * 1.18)
+    despine(ax)
+    ax.grid(axis="y", lw=0.4, alpha=0.5)
+
+    # ---- panel b: EUI per era -------------------------------------------
+    ax = axes[1]
+    euis = [bera.loc[bera["era"] == e, "eui_kwh_m2"].values[0] for e in eras]
+    bars = ax.bar(xpos, euis, color=[ERA_COLORS[e] for e in eras], width=0.5, zorder=2)
+    for bar, eui in zip(bars, euis):
+        ax.text(bar.get_x() + bar.get_width() / 2, eui + 1,
+                f"{eui:.1f}", ha="center", va="bottom", fontsize=FONT_SIZE_ANNOT)
+    ax.set_xticks(xpos)
+    ax.set_xticklabels(xlabels)
+    ax.set_ylabel("EUI (kWh/m²/yr)", fontsize=FONT_SIZE_LABEL)
+    ax.set_title("(b) Energy use intensity by era", fontsize=FONT_SIZE_TITLE, pad=4)
+    ax.set_ylim(0, max(euis) * 1.20)
+    despine(ax)
+    ax.grid(axis="y", lw=0.4, alpha=0.5)
+
+    # city total annotation
+    axes[0].annotate("City total: 15,382 GWh/yr\n(EUI = 213.5 kWh/m²/yr)",
+                     xy=(0.5, 0.96), xycoords="figure fraction",
+                     ha="center", fontsize=FONT_SIZE_ANNOT, style="italic",
+                     color="#444444")
+    plt.tight_layout()
+    out = os.path.join(FIG_DIR, "fig04_city_baseline.png")
+    savefig(fig, out)
+    return out
+
+
+# ===========================================================================
+# FIG 05 — Retrofit savings by measure
+# ===========================================================================
+
+def fig05_city_retrofit():
+    rtot = get_retrofit_totals()
+    rera = get_retrofit_era()
+
+    fig, axes = plt.subplots(1, 2, figsize=FIGSIZE_WIDE)
+
+    # ---- panel a: city-total savings per retrofit measure ----------------
+    ax = axes[0]
+    measures = ["R1_Wall", "R2_Window", "R3_Roof", "R4_Infiltration", "R5_Combined"]
+    labels   = [rtot.loc[rtot["retrofit"] == m, "label"].values[0] for m in measures]
+    savings  = [rtot.loc[rtot["retrofit"] == m, "total_savings_GWh"].values[0] for m in measures]
+    colors   = [RETROFIT_COLORS[m] for m in measures]
+    xpos = np.arange(len(measures))
+    bars = ax.bar(xpos, savings, color=colors, width=0.55, zorder=2)
+    ax.set_xticks(xpos)
+    ax.set_xticklabels([l.split(": ")[1] for l in labels], fontsize=FONT_SIZE_BASE)
+    ax.set_ylabel("Annual savings (GWh/yr)", fontsize=FONT_SIZE_LABEL)
+    ax.set_title("(a) City-scale savings by retrofit measure", fontsize=FONT_SIZE_TITLE, pad=4)
+    for bar, s in zip(bars, savings):
+        pct = rtot.loc[rtot["retrofit"] == measures[bars.patches.index(bar)],
+                       "savings_vs_baseline_pct"].values[0]
+        ax.text(bar.get_x() + bar.get_width() / 2, s + 20,
+                f"{s:.0f}\n({pct:.1f}%)", ha="center", va="bottom", fontsize=FONT_SIZE_ANNOT)
+    ax.set_ylim(0, max(savings) * 1.30)
+    despine(ax)
+    ax.grid(axis="y", lw=0.4, alpha=0.5)
+
+    # ---- panel b: R5 savings per era (total) ----------------------------
+    ax = axes[1]
+    r5 = rera[rera["retrofit"] == "R5_Combined"].copy()
+    eras = ["era1", "era2", "era3"]
+    r5 = r5.set_index("era")
+    sav = [r5.loc[e, "savings_GWh"] if e in r5.index else 0 for e in eras]
+    pct_list = [r5.loc[e, "savings_pct"] if e in r5.index else 0 for e in eras]
+    xpos = np.arange(len(eras))
+    bars2 = ax.bar(xpos, sav, color=[ERA_COLORS[e] for e in eras], width=0.45, zorder=2)
+    for x, s, pct in zip(xpos, sav, pct_list):
+        ax.text(x, s + 20, f"{s:.0f} GWh\n({pct:.0f}%)",
+                ha="center", va="bottom", fontsize=FONT_SIZE_ANNOT)
+    ax.set_xticks(xpos)
+    ax.set_xticklabels([ERA_LABELS[e].split(" (")[0] for e in eras])
+    ax.set_ylabel("Annual savings (GWh/yr)", fontsize=FONT_SIZE_LABEL)
+    ax.set_title("(b) R5 savings by era", fontsize=FONT_SIZE_TITLE, pad=4)
+    ax.set_ylim(0, max(sav) * 1.28)
+    despine(ax)
+    ax.grid(axis="y", lw=0.4, alpha=0.5)
+
+    plt.tight_layout()
+    out = os.path.join(FIG_DIR, "fig05_city_retrofit.png")
+    savefig(fig, out)
+    return out
+
+
+# ===========================================================================
+# FIG 06 — PV spatial distribution (grid-level choropleth)
+# ===========================================================================
+
+def fig06_pv_spatial():
+    grid_geo = get_grid_geo()
+    # Merge PV data from classified_buildings aggregated to grid
+    bld = get_buildings()
+    pv_grid = bld.groupby("grid_id")["annual_pv_kwh_v5"].sum().reset_index()
+    pv_grid["annual_pv_GWh"] = pv_grid["annual_pv_kwh_v5"] / 1e6
+    pv_grid.rename(columns={"grid_id": "grid_id"}, inplace=True)
+
+    gdf = grid_geo.merge(pv_grid, on="grid_id", how="left")
+    gdf["annual_pv_GWh"] = gdf["annual_pv_GWh"].fillna(0)
+
+    # High-potential grids (>= 1 HP building)
+    hp_grid = bld[bld["is_high_potential"] == 1].groupby("grid_id").size().reset_index(name="hp_count")
+    gdf = gdf.merge(hp_grid, on="grid_id", how="left")
+    gdf["hp_count"] = gdf["hp_count"].fillna(0)
+    gdf_hp = gdf[gdf["hp_count"] > 0]
+
+    fig, axes = plt.subplots(1, 2, figsize=FIGSIZE_MAP)
+
+    # ---- panel a: all grids coloured by PV potential --------------------
+    ax = axes[0]
+    gdf_nonzero = gdf[gdf["annual_pv_GWh"] > 0]
+    gdf[gdf["annual_pv_GWh"] == 0].plot(ax=ax, color="#EEEEEE", linewidth=0.1)
+    vmax = gdf_nonzero["annual_pv_GWh"].quantile(0.97)
+    sm = gdf_nonzero.plot(ax=ax, column="annual_pv_GWh", cmap="YlOrRd",
+                          vmin=0, vmax=vmax, linewidth=0.1, edgecolor="none")
+    get_study_area().boundary.plot(ax=ax, color="black", linewidth=0.7, zorder=3)
+    plt.colorbar(ScalarMappable(norm=Normalize(0, vmax), cmap="YlOrRd"),
+                 ax=ax, label="Annual PV (GWh/yr)", shrink=0.75, pad=0.02)
+    ax.set_title("(a) Grid-level PV generation (all buildings)", fontsize=FONT_SIZE_TITLE, pad=4)
+    ax.set_xlabel("Longitude (°E)", fontsize=FONT_SIZE_LABEL)
+    ax.set_ylabel("Latitude (°N)", fontsize=FONT_SIZE_LABEL)
+    ax.tick_params(labelsize=FONT_SIZE_BASE - 1)
+    _add_north_arrow(ax)
+
+    # ---- panel b: high-potential grid distribution ----------------------
+    ax = axes[1]
+    gdf[gdf["hp_count"] == 0].plot(ax=ax, color="#EEEEEE", linewidth=0.1)
+    gdf_hp.plot(ax=ax, column="annual_pv_GWh", cmap="YlOrRd",
+                vmin=0, vmax=vmax, linewidth=0.1, edgecolor="none")
+    get_study_area().boundary.plot(ax=ax, color="black", linewidth=0.7, zorder=3)
+    plt.colorbar(ScalarMappable(norm=Normalize(0, vmax), cmap="YlOrRd"),
+                 ax=ax, label="Annual PV (GWh/yr)", shrink=0.75, pad=0.02)
+    ax.set_title("(b) High-potential building grids only", fontsize=FONT_SIZE_TITLE, pad=4)
+    ax.set_xlabel("Longitude (°E)", fontsize=FONT_SIZE_LABEL)
+    ax.set_ylabel("Latitude (°N)", fontsize=FONT_SIZE_LABEL)
+    ax.tick_params(labelsize=FONT_SIZE_BASE - 1)
+    _add_north_arrow(ax)
+
+    fig.suptitle("Rooftop PV generation potential  (6,401 high-potential buildings, 1,603 GWh/yr)",
+                 fontsize=FONT_SIZE_TITLE + 1, fontweight="bold", y=1.01)
+    plt.tight_layout()
+    out = os.path.join(FIG_DIR, "fig06_pv_spatial.png")
+    savefig(fig, out)
+    return out
+
+
+# ===========================================================================
+# FIG 07 — Monthly supply-demand matching
+# ===========================================================================
+
+def fig07_supply_demand():
+    df = get_monthly()
+
+    fig, axes = plt.subplots(1, 2, figsize=FIGSIZE_WIDE)
+
+    # ---- panel a: monthly demand stacks + PV line -----------------------
+    ax = axes[0]
+    months = np.arange(1, 13)
+    ax.bar(months, df["baseline_heat_GWh"], color=HEATING_COLOR, label="Heating",
+           zorder=2, width=0.7)
+    ax.bar(months, df["baseline_cool_GWh"], bottom=df["baseline_heat_GWh"],
+           color=COOLING_COLOR, label="Cooling", zorder=2, width=0.7)
+    ax.bar(months, df["baseline_other_GWh"],
+           bottom=df["baseline_heat_GWh"] + df["baseline_cool_GWh"],
+           color=OTHER_COLOR, label="Other", zorder=2, width=0.7)
+    ax.plot(months, df["pv_gen_GWh"], color=PV_COLOR, linewidth=2.0,
+            marker="o", markersize=4, label="PV generation", zorder=5)
+    ax.set_xticks(months)
+    ax.set_xticklabels(MONTH_NAMES, fontsize=FONT_SIZE_BASE - 1)
+    ax.set_ylabel("Energy (GWh)", fontsize=FONT_SIZE_LABEL)
+    ax.set_title("(a) Monthly energy demand vs PV supply\n(baseline)", fontsize=FONT_SIZE_TITLE, pad=4)
+    ax.legend(fontsize=FONT_SIZE_LEGEND, loc="upper left", framealpha=0.85, edgecolor="none",
+              ncol=2)
+    despine(ax)
+    ax.grid(axis="y", lw=0.4, alpha=0.5)
+
+    # ---- panel b: R5 demand vs PV, showing net -------------------------
+    ax = axes[1]
+    ax.bar(months, df["r5_heat_GWh"], color=HEATING_COLOR, label="R5 heating",
+           zorder=2, width=0.7)
+    ax.bar(months, df["r5_cool_GWh"], bottom=df["r5_heat_GWh"],
+           color=COOLING_COLOR, label="R5 cooling", zorder=2, width=0.7)
+    ax.bar(months, df["r5_other_GWh"],
+           bottom=df["r5_heat_GWh"] + df["r5_cool_GWh"],
+           color=OTHER_COLOR, label="R5 other", zorder=2, width=0.7, alpha=0.7)
+    ax.plot(months, df["pv_gen_GWh"], color=PV_COLOR, linewidth=2.0,
+            marker="o", markersize=4, label="PV generation", zorder=5)
+    ax.set_xticks(months)
+    ax.set_xticklabels(MONTH_NAMES, fontsize=FONT_SIZE_BASE - 1)
+    ax.set_ylabel("Energy (GWh)", fontsize=FONT_SIZE_LABEL)
+    ax.set_title("(b) Monthly energy demand vs PV supply\n(R5 retrofit)", fontsize=FONT_SIZE_TITLE, pad=4)
+    ax.legend(fontsize=FONT_SIZE_LEGEND, loc="upper left", framealpha=0.85, edgecolor="none",
+              ncol=2)
+    despine(ax)
+    ax.grid(axis="y", lw=0.4, alpha=0.5)
+
+    fig.suptitle("Monthly PV supply-demand matching  (HP buildings, 1,603 GWh PV, 100% SC)",
+                 fontsize=FONT_SIZE_TITLE + 1, fontweight="bold", y=1.01)
+    plt.tight_layout()
+    out = os.path.join(FIG_DIR, "fig07_supply_demand.png")
+    savefig(fig, out)
+    return out
+
+
+# ===========================================================================
+# FIG 08 — Seasonal PV-cooling coincidence
+# ===========================================================================
+
+def fig08_seasonal_match():
+    df = get_monthly()
+
+    fig, axes = plt.subplots(1, 2, figsize=FIGSIZE_WIDE)
+
+    months = np.arange(1, 13)
+
+    # ---- panel a: PV coverage fraction (PV/total demand) ----------------
+    ax = axes[0]
+    base_cov = df["baseline_coverage"]
+    r5_cov   = df["r5_coverage"]
+    ax.bar(months - 0.2, base_cov * 100, width=0.38, color="#CCCCCC",
+           label="Baseline", zorder=2)
+    ax.bar(months + 0.2, r5_cov * 100, width=0.38, color=PV_COLOR,
+           label="R5 retrofit", zorder=2)
+    ax.set_xticks(months)
+    ax.set_xticklabels(MONTH_NAMES, fontsize=FONT_SIZE_BASE - 1)
+    ax.set_ylabel("PV coverage (% of total demand)", fontsize=FONT_SIZE_LABEL)
+    ax.set_title("(a) Monthly PV coverage fraction", fontsize=FONT_SIZE_TITLE, pad=4)
+    ax.legend(fontsize=FONT_SIZE_LEGEND, framealpha=0.85, edgecolor="none")
+    despine(ax)
+    ax.grid(axis="y", lw=0.4, alpha=0.5)
+
+    # ---- panel b: cooling-PV coincidence --------------------------------
+    ax = axes[1]
+    cool_cov_base = df["baseline_cool_coverage"]
+    cool_cov_r5   = df["r5_cool_coverage"]
+    ax.bar(months - 0.2, cool_cov_base * 100, width=0.38, color=COOLING_COLOR,
+           alpha=0.6, label="Baseline (PV/cooling)", zorder=2)
+    ax.bar(months + 0.2, cool_cov_r5 * 100, width=0.38, color=COOLING_COLOR,
+           label="R5 retrofit (PV/cooling)", zorder=2)
+    ax.set_xticks(months)
+    ax.set_xticklabels(MONTH_NAMES, fontsize=FONT_SIZE_BASE - 1)
+    ax.set_ylabel("PV coverage of cooling demand (%)", fontsize=FONT_SIZE_LABEL)
+    ax.set_title("(b) PV–cooling coincidence by month", fontsize=FONT_SIZE_TITLE, pad=4)
+    ax.legend(fontsize=FONT_SIZE_LEGEND, framealpha=0.85, edgecolor="none")
+    despine(ax)
+    ax.grid(axis="y", lw=0.4, alpha=0.5)
+
+    # Annotation: coincidence factor
+    fig.text(0.5, -0.02,
+             "PV–cooling coincidence factor: 0.425  (Jun–Sep PV share 38.3% / cooling share 90%)",
+             ha="center", fontsize=FONT_SIZE_ANNOT, style="italic", color="#444444")
+    plt.tight_layout()
+    out = os.path.join(FIG_DIR, "fig08_seasonal_match.png")
+    savefig(fig, out)
+    return out
+
+
+# ===========================================================================
+# FIG 09 — Climate scenario city-scale energy
+# ===========================================================================
+
+def fig09_climate_city():
+    clim = get_climate()
+
+    scenarios = SCENARIO_ORDER
+
+    fig, axes = plt.subplots(1, 2, figsize=FIGSIZE_WIDE)
+
+    def _get_total(scenario, retrofit_status):
+        row = clim[(clim["scenario"] == scenario) & (clim["retrofit_status"] == retrofit_status)]
+        if len(row) == 0:
+            return None, None, None
+        return row["city_heating_GWh"].values[0], row["city_cooling_GWh"].values[0], row["city_other_GWh"].values[0]
+
+    # ---- panel a: baseline demand across scenarios ----------------------
+    ax = axes[0]
+    xpos = np.arange(len(scenarios))
+    h_b = [_get_total(s, "baseline")[0] for s in scenarios]
+    c_b = [_get_total(s, "baseline")[1] for s in scenarios]
+    o_b = [_get_total(s, "baseline")[2] for s in scenarios]
+    ax.bar(xpos, h_b, color=HEATING_COLOR, label="Heating", width=0.55, zorder=2)
+    ax.bar(xpos, c_b, bottom=h_b, color=COOLING_COLOR, label="Cooling", width=0.55, zorder=2)
+    ax.bar(xpos, o_b, bottom=[h + c for h, c in zip(h_b, c_b)],
+           color=OTHER_COLOR, label="Other", width=0.55, zorder=2)
+    totals_b = [h + c + o for h, c, o in zip(h_b, c_b, o_b)]
+    for x, tot in zip(xpos, totals_b):
+        ax.text(x, tot + 50, f"{tot:.0f}", ha="center", va="bottom", fontsize=FONT_SIZE_ANNOT - 1)
+    ax.set_xticks(xpos)
+    ax.set_xticklabels([SCENARIO_LABELS[s] for s in scenarios], rotation=25, ha="right",
+                       fontsize=FONT_SIZE_BASE - 1)
+    ax.set_ylabel("Annual energy (GWh/yr)", fontsize=FONT_SIZE_LABEL)
+    ax.set_title("(a) Baseline demand by climate scenario", fontsize=FONT_SIZE_TITLE, pad=4)
+    ax.legend(fontsize=FONT_SIZE_LEGEND, loc="upper right", framealpha=0.85, edgecolor="none")
+    ax.set_ylim(0, max(totals_b) * 1.18)
+    despine(ax)
+    ax.grid(axis="y", lw=0.4, alpha=0.5)
+
+    # ---- panel b: R5 demand vs baseline current -------------------------
+    ax = axes[1]
+    h_r5 = [_get_total(s, "R5")[0] for s in scenarios]
+    c_r5 = [_get_total(s, "R5")[1] for s in scenarios]
+    o_r5 = [_get_total(s, "R5")[2] for s in scenarios]
+    totals_r5 = [h + c + o for h, c, o in zip(h_r5, c_r5, o_r5)]
+    ax.plot(xpos, totals_b, color=CARBON_BASELINE_COLOR, linewidth=1.5,
+            marker="s", markersize=5, label="Baseline", zorder=4)
+    ax.plot(xpos, totals_r5, color=CARBON_R5PV_COLOR, linewidth=1.5,
+            marker="o", markersize=5, label="R5 retrofit", zorder=4)
+    # shade region
+    ax.fill_between(xpos, totals_r5, totals_b, alpha=0.15, color=CARBON_R5PV_COLOR)
+    ax.set_xticks(xpos)
+    ax.set_xticklabels([SCENARIO_LABELS[s] for s in scenarios], rotation=25, ha="right",
+                       fontsize=FONT_SIZE_BASE - 1)
+    ax.set_ylabel("Annual energy (GWh/yr)", fontsize=FONT_SIZE_LABEL)
+    ax.set_title("(b) Baseline vs R5 demand across scenarios", fontsize=FONT_SIZE_TITLE, pad=4)
+    ax.legend(fontsize=FONT_SIZE_LEGEND, framealpha=0.85, edgecolor="none")
+    despine(ax)
+    ax.grid(axis="y", lw=0.4, alpha=0.5)
+    ax.annotate("H/C tipping\n2050 SSP5-8.5", xy=(2, totals_r5[2]), xytext=(2.6, totals_r5[2] + 300),
+                arrowprops=dict(arrowstyle="->", color="#555555"), fontsize=FONT_SIZE_ANNOT - 1)
+
+    plt.tight_layout()
+    out = os.path.join(FIG_DIR, "fig09_climate_city.png")
+    savefig(fig, out)
+    return out
+
+
+# ===========================================================================
+# FIG 10 — Heating/cooling shift under climate change
+# ===========================================================================
+
+def fig10_hc_shift():
+    clim = get_climate()
+    scenarios = SCENARIO_ORDER
+
+    fig, axes = plt.subplots(1, 2, figsize=FIGSIZE_WIDE)
+
+    def _hc(scenario, retrofit):
+        r = clim[(clim["scenario"] == scenario) & (clim["retrofit_status"] == retrofit)]
+        if len(r) == 0:
+            return np.nan, np.nan
+        return r["city_heating_GWh"].values[0], r["city_cooling_GWh"].values[0]
+
+    # ---- panel a: H/C ratio across scenarios ----------------------------
+    ax = axes[0]
+    hc_base = []
+    hc_r5   = []
+    for s in scenarios:
+        h, c = _hc(s, "baseline")
+        hc_base.append(h / c if c > 0 else np.nan)
+        h, c = _hc(s, "R5")
+        hc_r5.append(h / c if c > 0 else np.nan)
+    xpos = np.arange(len(scenarios))
+    ax.plot(xpos, hc_base, color=CARBON_BASELINE_COLOR, linewidth=2.0,
+            marker="s", markersize=6, label="Baseline")
+    ax.plot(xpos, hc_r5,   color=CARBON_R5PV_COLOR,     linewidth=2.0,
+            marker="o", markersize=6, label="R5 retrofit")
+    ax.axhline(1.0, color="black", lw=0.8, linestyle="--", label="H/C = 1 (tipping)")
+    ax.set_xticks(xpos)
+    ax.set_xticklabels([SCENARIO_LABELS[s] for s in scenarios], rotation=25, ha="right",
+                       fontsize=FONT_SIZE_BASE - 1)
+    ax.set_ylabel("Heating/Cooling ratio", fontsize=FONT_SIZE_LABEL)
+    ax.set_title("(a) Heating-to-cooling ratio shift", fontsize=FONT_SIZE_TITLE, pad=4)
+    ax.legend(fontsize=FONT_SIZE_LEGEND, framealpha=0.85, edgecolor="none")
+    despine(ax)
+    ax.grid(axis="y", lw=0.4, alpha=0.5)
+    # annotate tipping point
+    tip_x = scenarios.index("2050_SSP585")
+    ax.annotate("Tipping\npoint", xy=(tip_x, hc_base[tip_x]),
+                xytext=(tip_x + 0.5, hc_base[tip_x] + 0.12),
+                arrowprops=dict(arrowstyle="->", color="#555555"),
+                fontsize=FONT_SIZE_ANNOT - 1)
+
+    # ---- panel b: absolute heating & cooling per scenario ---------------
+    ax = axes[1]
+    width = 0.22
+    xpos = np.arange(len(scenarios))
+    h_b = [_hc(s, "baseline")[0] for s in scenarios]
+    c_b = [_hc(s, "baseline")[1] for s in scenarios]
+    h_r = [_hc(s, "R5")[0] for s in scenarios]
+    c_r = [_hc(s, "R5")[1] for s in scenarios]
+    ax.bar(xpos - 1.5 * width, h_b, width=width, color=HEATING_COLOR, alpha=0.75,
+           label="Baseline heating", zorder=2)
+    ax.bar(xpos - 0.5 * width, c_b, width=width, color=COOLING_COLOR, alpha=0.75,
+           label="Baseline cooling", zorder=2)
+    ax.bar(xpos + 0.5 * width, h_r, width=width, color=HEATING_COLOR,
+           label="R5 heating", zorder=2, linewidth=0.5, edgecolor="white")
+    ax.bar(xpos + 1.5 * width, c_r, width=width, color=COOLING_COLOR,
+           label="R5 cooling", zorder=2, linewidth=0.5, edgecolor="white")
+    ax.set_xticks(xpos)
+    ax.set_xticklabels([SCENARIO_LABELS[s] for s in scenarios], rotation=25, ha="right",
+                       fontsize=FONT_SIZE_BASE - 1)
+    ax.set_ylabel("Annual energy (GWh/yr)", fontsize=FONT_SIZE_LABEL)
+    ax.set_title("(b) Heating vs cooling by scenario", fontsize=FONT_SIZE_TITLE, pad=4)
+    ax.legend(fontsize=FONT_SIZE_LEGEND - 1, framealpha=0.85, edgecolor="none", ncol=2)
+    despine(ax)
+    ax.grid(axis="y", lw=0.4, alpha=0.5)
+
+    plt.tight_layout()
+    out = os.path.join(FIG_DIR, "fig10_hc_shift.png")
+    savefig(fig, out)
+    return out
+
+
+# ===========================================================================
+# FIG 11 — Integrated grid-level priority map
+# ===========================================================================
+
+def fig11_integrated_grid():
+    grid_geo  = get_grid_geo()
+    grank     = get_grid_ranking()
+    sa        = get_study_area()
+
+    # Merge ranking onto geometry
+    gdf = grid_geo.merge(grank, on="grid_id", how="left")
+    gdf["integrated_score"] = gdf["integrated_score"].fillna(0)
+    gdf["rank_integrated"]  = gdf["rank_integrated"].fillna(999)
+
+    top50 = gdf[gdf["rank_integrated"] <= 50]
+    rest  = gdf[(gdf["rank_integrated"] > 50) & (gdf["integrated_score"] > 0)]
+
+    fig, axes = plt.subplots(1, 2, figsize=FIGSIZE_MAP)
+
+    # ---- panel a: integrated score choropleth ----------------------------
+    ax = axes[0]
+    gdf[gdf["integrated_score"] == 0].plot(ax=ax, color="#EEEEEE", linewidth=0.1)
+    rest.plot(ax=ax, column="integrated_score", cmap="Blues", vmin=0, vmax=100,
+              linewidth=0.1, edgecolor="none")
+    top50.plot(ax=ax, column="integrated_score", cmap="YlOrRd", vmin=60, vmax=100,
+               linewidth=0.3, edgecolor="black")
+    sa.boundary.plot(ax=ax, color="black", linewidth=0.7, zorder=5)
+    plt.colorbar(ScalarMappable(norm=Normalize(0, 100), cmap="Blues"),
+                 ax=ax, label="Integrated score", shrink=0.72, pad=0.02)
+    # Add top-5 labels
+    top5 = top50.nsmallest(5, "rank_integrated")
+    for _, row in top5.iterrows():
+        cx, cy = row.geometry.centroid.x, row.geometry.centroid.y
+        ax.text(cx, cy, str(int(row["rank_integrated"])), ha="center", va="center",
+                fontsize=5, fontweight="bold", color="black", zorder=6)
+    ax.set_title("(a) Integrated priority score\n(top-50 highlighted)", fontsize=FONT_SIZE_TITLE, pad=4)
+    ax.set_xlabel("Longitude (°E)", fontsize=FONT_SIZE_LABEL)
+    ax.set_ylabel("Latitude (°N)", fontsize=FONT_SIZE_LABEL)
+    ax.tick_params(labelsize=FONT_SIZE_BASE - 1)
+    _add_north_arrow(ax)
+
+    # ---- panel b: top-50 coloured by dominant era ----------------------
+    ax = axes[1]
+    gdf[gdf["rank_integrated"] > 50].plot(ax=ax, color="#EEEEEE", linewidth=0.1)
+    for era, color in ERA_COLORS.items():
+        subset = top50[top50["dominant_era"] == era]
+        if len(subset) > 0:
+            subset.plot(ax=ax, color=color, linewidth=0.3, edgecolor="black", label=ERA_LABELS[era])
+    sa.boundary.plot(ax=ax, color="black", linewidth=0.7, zorder=5)
+    handles = [mpatches.Patch(facecolor=v, label=ERA_LABELS[k]) for k, v in ERA_COLORS.items()]
+    ax.legend(handles=handles, loc="lower left", fontsize=FONT_SIZE_LEGEND,
+              framealpha=0.85, edgecolor="none")
+    ax.set_title("(b) Top-50 grids coloured by dominant era\n(28 in P1 priority, 22 new)",
+                 fontsize=FONT_SIZE_TITLE, pad=4)
+    ax.set_xlabel("Longitude (°E)", fontsize=FONT_SIZE_LABEL)
+    ax.set_ylabel("Latitude (°N)", fontsize=FONT_SIZE_LABEL)
+    ax.tick_params(labelsize=FONT_SIZE_BASE - 1)
+    _add_north_arrow(ax)
+
+    fig.suptitle("Integrated grid-level priority scoring  (671 grids; weights: solar/retrofit/carbon/climate = 0.30/0.30/0.20/0.20)",
+                 fontsize=FONT_SIZE_TITLE, fontweight="bold", y=1.01)
+    plt.tight_layout()
+    out = os.path.join(FIG_DIR, "fig11_integrated_grid.png")
+    savefig(fig, out)
+    return out
+
+
+# ===========================================================================
+# FIG 12 — Annual carbon accounting
+# ===========================================================================
+
+def fig12_carbon():
+    cann = get_carbon_ann()
+    cera = get_carbon_era()
+
+    fig, axes = plt.subplots(1, 2, figsize=FIGSIZE_WIDE)
+
+    # ---- panel a: carbon by scenario (current year, fixed EF) -----------
+    ax = axes[0]
+    # Show current year only, fixed grid EF, baseline vs R5 vs R5+PV
+    cur = cann[cann["scenario"] == "Current"]
+    bau_no_pv = cur.loc[(cur["retrofit_status"] == "baseline") & (~cur["pv_included"]),
+                        "annual_carbon_kt"].values[0]
+    bau_pv    = cur.loc[(cur["retrofit_status"] == "baseline") & (cur["pv_included"]),
+                        "annual_carbon_kt"].values[0]
+    r5_no_pv  = cur.loc[(cur["retrofit_status"] == "R5") & (~cur["pv_included"]),
+                        "annual_carbon_kt"].values[0]
+    r5_pv     = cur.loc[(cur["retrofit_status"] == "R5") & (cur["pv_included"]),
+                        "annual_carbon_kt"].values[0]
+
+    categories  = ["Baseline\n(no PV)", "Baseline\n+ PV", "R5 retrofit\n(no PV)", "R5 + PV"]
+    values      = [bau_no_pv, bau_pv, r5_no_pv, r5_pv]
+    bar_colors  = [CARBON_BASELINE_COLOR, COOLING_COLOR, "#74ADD1", CARBON_R5PV_COLOR]
+    bars = ax.bar(categories, values, color=bar_colors, width=0.55, zorder=2)
+    for bar, val in zip(bars, values):
+        ax.text(bar.get_x() + bar.get_width() / 2, val + 20,
+                f"{val:.0f}", ha="center", va="bottom", fontsize=FONT_SIZE_ANNOT)
+    # savings annotation
+    ax.annotate("", xy=(3, r5_pv), xytext=(0, bau_no_pv),
+                arrowprops=dict(arrowstyle="-[,widthB=0.5", color="#555555", lw=0.8))
+    ax.text(1.5, (bau_no_pv + r5_pv) / 2 + 100,
+            f"Saved: {bau_no_pv - r5_pv:.0f} kt CO₂/yr\n({(bau_no_pv - r5_pv)/bau_no_pv*100:.0f}%)",
+            ha="center", fontsize=FONT_SIZE_ANNOT, color="#444444",
+            bbox=dict(fc="white", ec="none", alpha=0.7))
+    ax.set_ylabel("Annual CO₂ emissions (kt/yr)", fontsize=FONT_SIZE_LABEL)
+    ax.set_title("(a) Annual carbon — current climate\n(grid EF = 0.5703 tCO₂/MWh)", fontsize=FONT_SIZE_TITLE, pad=4)
+    ax.set_ylim(0, bau_no_pv * 1.22)
+    despine(ax)
+    ax.grid(axis="y", lw=0.4, alpha=0.5)
+
+    # ---- panel b: per-era combined savings breakdown --------------------
+    ax = axes[1]
+    eras = ["era1", "era2", "era3"]
+    r5_sav  = [cera.loc[cera["era"] == e, "r5_carbon_savings_kt"].values[0] for e in eras]
+    pv_sav  = [cera.loc[cera["era"] == e, "pv_carbon_savings_kt"].values[0] for e in eras]
+    xpos = np.arange(len(eras))
+    ax.bar(xpos, r5_sav, color="#74ADD1", label="R5 retrofit savings", width=0.45, zorder=2)
+    ax.bar(xpos, pv_sav, bottom=r5_sav, color=PV_COLOR, label="PV savings", width=0.45, zorder=2)
+    totals = [r + p for r, p in zip(r5_sav, pv_sav)]
+    for x, tot in zip(xpos, totals):
+        pct = tot / sum(totals) * 100
+        ax.text(x, tot + 20, f"{tot:.0f} kt\n({pct:.0f}%)",
+                ha="center", va="bottom", fontsize=FONT_SIZE_ANNOT)
+    ax.set_xticks(xpos)
+    ax.set_xticklabels([ERA_LABELS[e].split(" (")[0] for e in eras])
+    ax.set_ylabel("Annual CO₂ savings (kt/yr)", fontsize=FONT_SIZE_LABEL)
+    ax.set_title("(b) Per-era combined savings\n(R5 retrofit + PV)", fontsize=FONT_SIZE_TITLE, pad=4)
+    ax.legend(fontsize=FONT_SIZE_LEGEND, framealpha=0.85, edgecolor="none")
+    ax.set_ylim(0, max(totals) * 1.28)
+    despine(ax)
+    ax.grid(axis="y", lw=0.4, alpha=0.5)
+
+    plt.tight_layout()
+    out = os.path.join(FIG_DIR, "fig12_carbon.png")
+    savefig(fig, out)
+    return out
+
+
+# ===========================================================================
+# FIG 13 — Cumulative carbon pathways 2025–2080
+# ===========================================================================
+
+def fig13_cumulative_carbon():
+    cum = get_carbon_cum()
+
+    fig, axes = plt.subplots(1, 2, figsize=FIGSIZE_WIDE)
+
+    years = cum["year"].values
+
+    # ---- panel a: annual carbon under 4 scenarios ----------------------
+    ax = axes[0]
+    ax.plot(years, cum["A_annual_kt"], color=CARBON_BASELINE_COLOR, lw=2.0,
+            marker="o", markersize=3, label="A: BAU SSP2-4.5")
+    ax.plot(years, cum["B_annual_kt"], color=CARBON_R5PV_COLOR, lw=2.0,
+            marker="s", markersize=3, label="B: R5+PV immediate SSP2-4.5")
+    ax.plot(years, cum["C_annual_kt"], color=CARBON_STEP_COLOR, lw=1.8, ls="--",
+            marker="^", markersize=3, label="C: Stepwise SSP2-4.5")
+    ax.plot(years, cum["D_annual_kt"], color=CARBON_SSP585_COLOR, lw=1.8, ls=":",
+            marker="D", markersize=3, label="D: R5+PV SSP5-8.5")
+    ax.fill_between(years, cum["B_annual_kt"], cum["A_annual_kt"],
+                    alpha=0.12, color=CARBON_R5PV_COLOR)
+    ax.set_xlabel("Year", fontsize=FONT_SIZE_LABEL)
+    ax.set_ylabel("Annual CO₂ (kt/yr)", fontsize=FONT_SIZE_LABEL)
+    ax.set_title("(a) Annual carbon emission pathways", fontsize=FONT_SIZE_TITLE, pad=4)
+    ax.legend(fontsize=FONT_SIZE_LEGEND, framealpha=0.85, edgecolor="none")
+    despine(ax)
+    ax.grid(lw=0.4, alpha=0.5)
+
+    # ---- panel b: cumulative emissions ----------------------------------
+    ax = axes[1]
+    ax.plot(years, cum["A_cumulative_kt"] / 1e3, color=CARBON_BASELINE_COLOR, lw=2.0,
+            marker="o", markersize=3, label="A: BAU")
+    ax.plot(years, cum["B_cumulative_kt"] / 1e3, color=CARBON_R5PV_COLOR, lw=2.0,
+            marker="s", markersize=3, label="B: R5+PV immediate")
+    ax.plot(years, cum["C_cumulative_kt"] / 1e3, color=CARBON_STEP_COLOR, lw=1.8, ls="--",
+            marker="^", markersize=3, label="C: Stepwise (0→100% by 2060)")
+    ax.plot(years, cum["D_cumulative_kt"] / 1e3, color=CARBON_SSP585_COLOR, lw=1.8, ls=":",
+            marker="D", markersize=3, label="D: SSP5-8.5 immediate")
+    ax.fill_between(years, cum["B_cumulative_kt"] / 1e3, cum["A_cumulative_kt"] / 1e3,
+                    alpha=0.12, color=CARBON_R5PV_COLOR)
+    # Endpoint annotations
+    for col, color, suffix in [("A_cumulative_kt", CARBON_BASELINE_COLOR, ""),
+                                ("B_cumulative_kt", CARBON_R5PV_COLOR, ""),
+                                ("C_cumulative_kt", CARBON_STEP_COLOR, ""),
+                                ("D_cumulative_kt", CARBON_SSP585_COLOR, "")]:
+        val = cum[col].iloc[-1] / 1e3
+        ax.text(2082, val, f"{val:.0f} Mt", va="center", fontsize=FONT_SIZE_ANNOT - 1,
+                color=color)
+    ax.set_xlim(2023, 2092)
+    ax.set_xlabel("Year", fontsize=FONT_SIZE_LABEL)
+    ax.set_ylabel("Cumulative CO₂ (Mt)", fontsize=FONT_SIZE_LABEL)
+    ax.set_title("(b) Cumulative carbon 2025–2080\n(grid decarbonisation trajectory)",
+                 fontsize=FONT_SIZE_TITLE, pad=4)
+    ax.legend(fontsize=FONT_SIZE_LEGEND, framealpha=0.85, edgecolor="none")
+    despine(ax)
+    ax.grid(lw=0.4, alpha=0.5)
+    # Savings annotation
+    sav_b = (cum["A_cumulative_kt"].iloc[-1] - cum["B_cumulative_kt"].iloc[-1]) / 1e3
+    ax.annotate(f"B saves\n{sav_b:.0f} Mt vs A",
+                xy=(2080, cum["B_cumulative_kt"].iloc[-1] / 1e3),
+                xytext=(2062, (cum["A_cumulative_kt"].iloc[-1] + cum["B_cumulative_kt"].iloc[-1]) / 2e3),
+                arrowprops=dict(arrowstyle="->", color="#555555"),
+                fontsize=FONT_SIZE_ANNOT - 1, color="#444444")
+
+    plt.tight_layout()
+    out = os.path.join(FIG_DIR, "fig13_cumulative_carbon.png")
+    savefig(fig, out)
+    return out
+
+
+# ===========================================================================
+# FIG 14 — Policy summary dashboard
+# ===========================================================================
+
+def fig14_policy_summary():
+    ps  = pd.read_csv(di("policy_summary.csv"), index_col=0)
+    gr  = get_grid_ranking()
+    cera = get_carbon_era()
+
+    fig = plt.figure(figsize=(7.1, 6.0))
+    gs = gridspec.GridSpec(2, 3, figure=fig, hspace=0.45, wspace=0.38)
+
+    # ---- a: top-50 KPI headline numbers --------------------------------
+    ax0 = fig.add_subplot(gs[0, :])
+    ax0.axis("off")
+    kpis = [
+        ("18,826", "total\nbuildings"),
+        ("6,401", "high-potential\nPV buildings"),
+        ("15,382 GWh", "baseline\nenergy/yr"),
+        ("−36.6%", "R5 retrofit\nsavings"),
+        ("1,603 GWh", "HP PV\ngeneration"),
+        ("4,127 kt CO₂", "annual\nCO₂ saved"),
+    ]
+    x_positions = np.linspace(0.08, 0.92, len(kpis))
+    for x, (val, lab) in zip(x_positions, kpis):
+        ax0.text(x, 0.75, val, ha="center", va="center",
+                 fontsize=FONT_SIZE_TITLE - 1, fontweight="bold", color="#2C3E6B",
+                 transform=ax0.transAxes)
+        ax0.text(x, 0.20, lab, ha="center", va="center",
+                 fontsize=FONT_SIZE_ANNOT - 1, color="#555555",
+                 transform=ax0.transAxes, multialignment="center")
+    ax0.set_title("(a) City-scale summary metrics", fontsize=FONT_SIZE_TITLE, pad=3)
+
+    # ---- b: per-era CO2 savings pie --------------------------------
+    ax1 = fig.add_subplot(gs[1, 0])
+    eras_co2 = ["era1", "era2", "era3"]
+    sav = [cera.loc[cera["era"] == e, "combined_savings_kt"].values[0] for e in eras_co2]
+    ax1.pie(sav, labels=["Era 1\n(52%)", "Era 2\n(35%)", "Era 3\n(13%)"],
+            colors=[ERA_COLORS[e] for e in eras_co2],
+            autopct=None, startangle=90,
+            wedgeprops=dict(linewidth=0.5, edgecolor="white"))
+    ax1.set_title("(b) CO₂ savings by era\n(4,127 kt/yr total)", fontsize=FONT_SIZE_TITLE - 1, pad=3)
+
+    # ---- c: top-10 grids bar ----------------------------------------
+    ax2 = fig.add_subplot(gs[1, 1])
+    top10 = gr.nsmallest(10, "rank_integrated")
+    colors_top10 = [ERA_COLORS.get(top10.iloc[i]["dominant_era"], "#888888")
+                    for i in range(len(top10))]
+    ax2.barh(range(9, -1, -1), top10["integrated_score"].values,
+             color=list(reversed(colors_top10)), height=0.55, zorder=2)
+    ax2.set_yticks(range(9, -1, -1))
+    ax2.set_yticklabels([f"#{int(r['rank_integrated'])} Grid {int(r['grid_id'])} ({r['district']})"
+                          for _, r in top10.iterrows()], fontsize=FONT_SIZE_ANNOT - 1)
+    ax2.set_xlabel("Integrated score", fontsize=FONT_SIZE_LABEL - 1)
+    ax2.set_title("(c) Top-10 priority grids", fontsize=FONT_SIZE_TITLE - 1, pad=3)
+    ax2.set_xlim(60, 100)
+    despine(ax2)
+    ax2.grid(axis="x", lw=0.4, alpha=0.5)
+
+    # ---- d: comparison bar: Paper1 vs Paper3 --------------------------
+    ax3 = fig.add_subplot(gs[1, 2])
+    labels_comp  = ["Paper 1\n(PV only)", "Paper 3\n(R5 + PV)"]
+    values_comp  = [1006, 4127]
+    colors_comp  = [PV_COLOR, CARBON_R5PV_COLOR]
+    bars = ax3.bar(labels_comp, values_comp, color=colors_comp, width=0.45, zorder=2)
+    for bar, val in zip(bars, values_comp):
+        ax3.text(bar.get_x() + bar.get_width() / 2, val + 40,
+                 f"{val:,} kt/yr", ha="center", va="bottom", fontsize=FONT_SIZE_ANNOT)
+    ax3.set_ylabel("Annual CO₂ savings (kt/yr)", fontsize=FONT_SIZE_LABEL - 1)
+    ax3.set_title("(d) Paper 1 vs Paper 3\ncarbon savings (4.10×)", fontsize=FONT_SIZE_TITLE - 1, pad=3)
+    ax3.set_ylim(0, 5000)
+    despine(ax3)
+    ax3.grid(axis="y", lw=0.4, alpha=0.5)
+    ax3.annotate("4.10×", xy=(1, values_comp[1] / 2), xytext=(0.5, values_comp[1] / 2),
+                 arrowprops=dict(arrowstyle="-|>", color="#555555"),
+                 fontsize=FONT_SIZE_ANNOT, fontweight="bold", color="#2C3E6B",
+                 ha="center")
+
+    fig.suptitle("Paper 3 — Policy dashboard: integrated retrofit + rooftop PV, Changsha urban core",
+                 fontsize=FONT_SIZE_TITLE, fontweight="bold", y=1.01)
+    out = os.path.join(FIG_DIR, "fig14_policy_summary.png")
+    savefig(fig, out)
+    return out
+
+
+# ===========================================================================
+# Contact sheet
+# ===========================================================================
+
+def make_contact_sheet(figure_paths):
+    """Tile all 14 figures into a single overview image."""
+    from PIL import Image
+    imgs = []
+    for fp in figure_paths:
+        if os.path.exists(fp):
+            imgs.append(Image.open(fp))
+        else:
+            # placeholder
+            img = Image.new("RGB", (710, 320), color=(240, 240, 240))
+            imgs.append(img)
+
+    ncols = 4
+    nrows = (len(imgs) + ncols - 1) // ncols
+    thumb_w, thumb_h = 710, 320
+    canvas = Image.new("RGB", (ncols * thumb_w + (ncols + 1) * 10,
+                                nrows * thumb_h + (nrows + 1) * 10 + 30),
+                       color=(255, 255, 255))
+    for i, img in enumerate(imgs):
+        r, c = divmod(i, ncols)
+        thumb = img.resize((thumb_w, thumb_h), Image.LANCZOS)
+        x = c * (thumb_w + 10) + 10
+        y = r * (thumb_h + 10) + 10 + 30
+        canvas.paste(thumb, (x, y))
+
+    out = os.path.join(FIG_DIR, "all_figures_contact.png")
+    canvas.save(out, dpi=(150, 150))
+    return out
+
+
+# ===========================================================================
+# Main
+# ===========================================================================
+
+FIGURE_FUNCS = [
+    ("fig01_study_area.png",          fig01_study_area),
+    ("fig02_methodology_flowchart.png", fig02_methodology_flowchart),
+    ("fig03_era_typology.png",         fig03_era_typology),
+    ("fig04_city_baseline.png",        fig04_city_baseline),
+    ("fig05_city_retrofit.png",        fig05_city_retrofit),
+    ("fig06_pv_spatial.png",           fig06_pv_spatial),
+    ("fig07_supply_demand.png",        fig07_supply_demand),
+    ("fig08_seasonal_match.png",       fig08_seasonal_match),
+    ("fig09_climate_city.png",         fig09_climate_city),
+    ("fig10_hc_shift.png",             fig10_hc_shift),
+    ("fig11_integrated_grid.png",      fig11_integrated_grid),
+    ("fig12_carbon.png",               fig12_carbon),
+    ("fig13_cumulative_carbon.png",    fig13_cumulative_carbon),
+    ("fig14_policy_summary.png",       fig14_policy_summary),
+]
+
+if __name__ == "__main__":
+    generated = []
+    failed    = []
+
+    for fname, fn in FIGURE_FUNCS:
+        print(f"  Generating {fname} ...", end=" ", flush=True)
+        try:
+            path = fn()
+            size_kb = os.path.getsize(path) / 1024
+            print(f"OK  ({size_kb:.0f} kB)")
+            generated.append((fname, path, size_kb))
+        except Exception as e:
+            print(f"FAILED: {e}")
+            failed.append((fname, str(e)))
+
+    print(f"\n{len(generated)}/14 figures generated.")
+
+    # Contact sheet (requires Pillow)
+    print("  Building contact sheet ...", end=" ", flush=True)
+    try:
+        paths = [p for _, p, _ in generated]
+        cs = make_contact_sheet(paths)
+        print(f"OK  ({os.path.getsize(cs)/1024:.0f} kB)")
+    except Exception as e:
+        print(f"FAILED (contact sheet): {e}")
+
+    if failed:
+        print("\nFailed figures:")
+        for f, e in failed:
+            print(f"  {f}: {e}")
