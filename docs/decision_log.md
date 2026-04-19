@@ -404,3 +404,33 @@ This is physically consistent: LowRise has a higher roof-to-floor area ratio tha
 
 **Scripts:** `code/analysis/retrofit_city.py`
 **Outputs:** `retrofit_deltas.csv`, `retrofit_city_building.csv`, `retrofit_city_totals.csv`, `retrofit_by_era.csv`, `retrofit_by_grid.csv`, `validation_task4.md`, `figure/fig05_city_retrofit.png`
+
+---
+
+## DEC-020 — Task 5 PV Monthly Profiles: Source and Self-Consumption Logic
+
+**Date:** 2026-04-19
+
+**Decision (monthly PV profile):** Derive monthly PV fractions from Paper 2 `processed/solar_monthly.csv` (actual pvlib simulation output, Era1 MidRise archetype, Changsha 28°N TMYx). Use Era 1 data as the representative city-wide PV profile.
+
+**Actual monthly PV fractions (Paper 2 pvlib):**
+Jan=7.1%, Feb=6.3%, Mar=7.5%, Apr=8.0%, May=9.2%, Jun=8.2%, Jul=11.1%, Aug=9.7%, Sep=9.3%, Oct=9.0%, Nov=7.6%, Dec=7.1%
+Summer (Jul peak) as expected for Changsha's radiation climatology.
+
+**Rationale:** Using Paper 2's actual pvlib output is more defensible than generic irradiance fractions. Era 1 MidRise profile selected as representative of the HP building stock (6,401 buildings, majority LowRise/MidRise). Era 1 and Era 2 monthly profiles are effectively identical in the CSV (same Changsha TMYx weather file used across eras; only panel area differs).
+
+**Decision (demand profiles):** Heating/cooling/other monthly shares use HSCW typical seasonal patterns (task specification) rather than EnergyPlus monthly outputs, which are not available at city-scale resolution.
+
+**Decision (self-consumption calculation):** `SC_ratio = min(PV_month, Demand_month) / PV_month`. Since annual city HP PV (1,603 GWh) << annual demand in both baseline (15,382 GWh) and R5 (10,167 GWh), PV is well below demand in every month → SC = 100% in all 12 months for both scenarios.
+
+**Limitation:** Monthly profiles use normalised annual fractions applied to building-level archetypes. No sub-monthly or diurnal resolution. Actual instantaneous self-consumption may be lower due to peak-hour mismatch; this analysis is at monthly city-scale. This is a standard limitation for city-scale supply-demand studies without hourly metered data.
+
+**Key results:**
+- Self-consumption: 100% (baseline and R5) — all PV absorbed in every month
+- PV-cooling coincidence factor: 0.425 (PV Jun–Sep share 38.3% / cooling Jun–Sep share 90%)
+- Cooling coverage by PV in July: 23.4% (baseline), 34.9% (R5)
+- Combined R5+PV savings: 6,817 GWh/yr (44.3% of baseline)
+- No month has PV surplus at city scale
+
+**Scripts:** `code/analysis/pv_supply_demand.py`
+**Outputs:** `pv_city_building.csv`, `monthly_profiles.csv`, `monthly_supply_demand.csv`, `validation_task5.md`, `figure/fig07_supply_demand.png`, `figure/fig08_seasonal_match.png`
