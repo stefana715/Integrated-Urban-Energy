@@ -1,0 +1,6 @@
+retrofit,label,total_savings_GWh,savings_vs_baseline_pct,heating_savings_GWh,cooling_savings_GWh
+R1_Wall,R1: Wall,817.49,5.31,627.96,119.05
+R2_Window,R2: Window,457.34,2.97,210.85,177.95
+R3_Roof,R3: Roof,465.60,3.03,355.32,84.67
+R4_Infiltration,R4: Air sealing,4273.59,27.78,3410.78,567.05
+R5_Combined,R5: Combined,5633.76,36.63,4374.85,838.10

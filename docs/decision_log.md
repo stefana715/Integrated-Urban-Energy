@@ -374,3 +374,33 @@ This is physically consistent: LowRise has a higher roof-to-floor area ratio tha
 
 **Scripts:** `code/analysis/baseline_city.py`
 **Outputs:** `data/integrated/archetype_eui.csv`, `baseline_city_building.csv`, `baseline_city_totals.csv`, `baseline_by_era.csv`, `baseline_by_grid.csv`, `validation_task3.md`, `figure/fig04_city_baseline.png`
+
+---
+
+## DEC-019 — Task 4 Retrofit Savings: Archetype Scaling Assumption
+
+**Date:** 2026-04-19
+**Decision:** Apply Paper 2's per-m² EUI delta values directly to all buildings in the same era: `savings_kwh = total_floor_area_m2 × delta_eui[era, retrofit]`.
+
+**Retrofit delta EUI values (kWh/m²/yr, from Paper 2 baseline_results.csv + retrofit_results.csv):**
+| Era | R1 Wall | R2 Window | R3 Roof | R4 Air seal | R5 Combined |
+|---|---|---|---|---|---|
+| Era 1 | 18.49 (7.1%) | 10.15 (3.9%) | 10.88 (4.2%) | 89.54 (34.3%) | 122.87 (47.0%) |
+| Era 2 | 10.37 (4.9%) | 4.76 (2.2%) | 6.37 (3.0%) | 56.42 (26.7%) | 73.09 (34.6%) |
+| Era 3 | 2.82 (1.9%) | 3.27 (2.2%) | 0.49 (0.3%) | 21.55 (14.3%) | 23.50 (15.6%) |
+
+**City-scale R5 results:**
+- Total savings: 5,634 GWh/yr (36.6% of 15,382 GWh baseline)
+- Heating savings: 4,375 GWh (dominant — 77.6% of total R5 savings)
+- Cooling savings: 838 GWh
+- Post-R5 city total: 9,748 GWh/yr
+- Post-R5 city mean EUI: 135.3 kWh/m²/yr (vs baseline 213.5)
+
+**Era R5 savings:** Era 1 = 3,260 GWh (57.9% of total savings); Era 2 = 1,922 GWh (34.1%); Era 3 = 452 GWh (8.0%)
+
+**Scaling assumption (limitation):** Per-m² savings are uniform within each era regardless of typology (LowRise/MidRise/HighRise). Paper 2 simulated only one archetype per era. Within-era heterogeneity (building form, vintage sub-era, orientation, urban shading) is not captured. This is a standard limitation of archetype-based UBEM; cite accordingly in manuscript.
+
+**Air sealing dominance:** R4 (infiltration to 0.3 ACH) delivers 27.8% of baseline energy on its own — driven by Era 1's high initial infiltration rate. This finding is physically significant for Changsha's pre-code stock (air-tight construction was not standard before ~2000).
+
+**Scripts:** `code/analysis/retrofit_city.py`
+**Outputs:** `retrofit_deltas.csv`, `retrofit_city_building.csv`, `retrofit_city_totals.csv`, `retrofit_by_era.csv`, `retrofit_by_grid.csv`, `validation_task4.md`, `figure/fig05_city_retrofit.png`
