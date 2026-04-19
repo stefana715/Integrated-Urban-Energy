@@ -39,6 +39,9 @@ pip-wheel-metadata/
 *.pkl
 *.parquet
 
+# Paper 1 processed GeoJSONs (too large for git; kept locally only)
+data/from_paper1/processed/
+
 # EnergyPlus outputs (keep only processed CSVs)
 *.eso
 *.err
