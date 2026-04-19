@@ -470,3 +470,31 @@ H/C tipping point: 2050_SSP585 (H/C = 0.97 < 1). City heating first drops below 
 
 **Scripts:** `code/analysis/climate_city.py`
 **Outputs:** `climate_factors.csv`, `climate_city_results.csv`, `climate_net_demand.csv`, `validation_task6.md`, `figure/fig09_climate_city.png`, `figure/fig10_hc_shift.png`
+
+---
+
+## DEC-022 — Task 7 Integrated Grid Scoring: Weights and Design Choices
+
+**Date:** 2026-04-19
+
+**Decision (weighting):** Equal 30/30/20/20 split across solar / retrofit / carbon / climate.
+Rationale: Solar and retrofit are the primary interventions (direct deployment metrics); carbon and climate are derived downstream metrics (important for policy but calculable from the first two). Slightly lower weight for derived metrics avoids double-counting: carbon is strongly correlated with retrofit savings (linear transform), and climate delta is a narrow-range derived metric (all grids have R5 climate delta between 4.6% and 5.6%).
+
+**Sensitivity included:** Three alternative weight sets (retrofit-emphasis, solar-emphasis, climate-emphasis). Result: 33–42/50 grids retain top-50 status under alternative weights, confirming the ranking is robust. The climate-emphasis set shows the most re-ordering (33/50 retained) because it amplifies a low-variance dimension (Era 3 vs Era 1/2 distinction).
+
+**Decision (grid scale):** 500m × 500m, matching Paper 1's resolution. Sub-500m disaggregation is not warranted given archetype-level (not building-level) climate factors.
+
+**Decision (climate dimension):** Per-grid climate_delta = (R5 demand 2080_SSP585 − R5 demand current) / R5 demand current. Computed from building-level floor areas × era-level climate factors (consistent with Task 6). Range is narrow (4.6–5.6%) because Era 1/2 R5 factors are identical and only Era 3 fraction varies within each grid. Climate score has lower discriminatory power than solar/retrofit scores — this is physically expected given the era-level climate parameterisation.
+
+**Decision (carbon metric):** CO₂_avoided = (R5_savings + PV_grid) × 0.5703 ktCO₂/GWh per grid. PV assigned only to high-potential buildings in each grid (annual_pv_kwh_v5 column from classified_buildings.csv). Self-consumption assumed 100% (confirmed by Task 5).
+
+**Key ranking results (2026-04-19):**
+- #1 grid: 933 (Kaifu, Era 2; integrated=91.1)
+- #2 grid: 316 (Yuelu, Era 3; integrated=90.6)
+- 28/50 top grids overlap with Paper 1's 146 solar-priority grids (56%)
+- 22 new grids surfaced by multi-dimensional scoring: dense Era 1 grids (e.g., #929, #1004) with very high retrofit savings but moderate solar scores — missed by solar-only screening
+- Top-50 deliver: 1,199 GWh R5 savings + 343 GWh PV = 879 kt CO₂/yr (21.3% of city total)
+- District distribution: Yuelu 31, Tianxin 8, Furong 7, Kaifu 3, Yuhua 1
+
+**Scripts:** `code/analysis/integrated_grid_ranking.py`
+**Outputs:** `integrated_grid_ranking.csv`, `policy_summary.csv`, `validation_task7.md`, `figure/fig11_integrated_grid.png`

@@ -94,8 +94,7 @@
 - [x] **Task 4:** City-scale retrofit savings calculation ✓ (2026-04-19) — R5 saves 5,634 GWh/yr (36.6%); post-R5 EUI 135.3 kWh/m²; Era 1 = 3,260 GWh saved. See retrofit_city_totals.csv, validation_task4.md.
 - [x] **Task 5:** PV generation + monthly supply-demand matching ✓ (2026-04-19) — City HP PV 1,603 GWh/yr; 100% self-consumption (all months); coincidence factor 0.425; combined R5+PV = 7,237 GWh (47.0% of baseline). See validation_task5.md.
 - [x] **Task 6:** Climate change scenario analysis ✓ (2026-04-19) — Baseline 2080 SSP585 = 14,701 GWh (−4.4%, heating savings exceed cooling rise); R5+PV net grows to 8,668 GWh (+6.4%); H/C tipping at 2050 SSP585; CO₂ avoided 4,127 kt/yr. See validation_task6.md.
-- [ ] **Task 7:** Grid-level integrated scoring and priority ranking — NEXT
-- [ ] **Task 7:** Climate scenario scaling
+- [x] **Task 7:** Integrated grid-level priority scoring ✓ (2026-04-19) — Top 50 grids identified; 28/50 overlap with Paper 1; 22 new grids; top-50 = 21.3% of city CO₂ savings; Yuelu/Tianxin/Furong dominant. See validation_task7.md.
 - [ ] **Task 8:** Integrated grid-level scoring and priority ranking
 - [ ] **Task 9:** Carbon emission calculations
 - [ ] **Task 10:** Generate all figures (target: 14)

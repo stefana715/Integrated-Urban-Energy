@@ -1,0 +1,9 @@
+metric,value,units
+Total grids,50.0,count
+Total buildings,1339.0,count
+Total floor area,16.938,Mm²
+Deployable rooftop area,2.4584,km²
+Annual R5 savings,1198.5,GWh/yr
+Annual PV generation,342.8,GWh/yr
+Annual CO2 avoided,879.0,kt/yr
+% of city CO2 savings,21.3,%
